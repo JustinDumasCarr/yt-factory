@@ -44,6 +44,7 @@ Top-level fields:
 - channel_id: string (required, e.g., "cafe_jazz", "fantasy_tavern")
 - intent: string (e.g., "music_compilation", "sleep", "focus")
 - target_minutes: number (default 60, channel-driven)
+  - Used as minimum duration for render step if less than channel minimum (allows test projects with fewer tracks)
 - track_count: number (default 25, channel-driven)
 - vocals: { enabled: boolean }
 - lyrics: { enabled: boolean, source: "gemini" | "manual" }
@@ -59,16 +60,22 @@ State and outputs:
 
 Planning:
 - plan:
-  - prompts: [{ track_index, prompt, seed_hint, vocals_enabled, lyrics_text? }]
+  - prompts: [{ job_index, style, title, prompt, seed_hint, vocals_enabled, lyrics_text? }]
+    - Note: `job_index` replaces old `track_index` (backwards compatible)
+    - Each job produces 2 variants (tracks)
   - youtube_metadata: { title, description, tags[] }
 
 Generated tracks:
 - tracks: [
     {
-      track_index,
-      prompt,
+      track_index,  # Sequential index across all variants (0, 1, 2, 3, ...)
+      title,  # Variant-specific title (e.g., "Whispering Scrolls I" or "Whispering Scrolls II")
+      style,  # Music style/genre (from job prompt)
+      prompt,  # Musical description
       provider: "suno",
-      job_id,
+      job_id,  # Suno job ID (shared across both variants from same job)
+      job_index,  # Which planned job this came from (0-based)
+      variant_index,  # Which variant (0 or 1) from the job
       audio_path,
       duration_seconds,
       status: "ok" | "failed",

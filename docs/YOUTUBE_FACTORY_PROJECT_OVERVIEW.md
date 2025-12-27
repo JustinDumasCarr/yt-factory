@@ -292,7 +292,7 @@ All project state is stored in a Pydantic-validated JSON file:
 - `project_id` - Unique identifier
 - `created_at` - ISO timestamp
 - `theme` - Project theme
-- `target_minutes` - Target duration (default: 60)
+- `target_minutes` - Target duration (default: 60). Used as minimum duration for render step if less than channel minimum (allows test projects with fewer tracks)
 - `track_count` - Number of tracks (default: 25)
 - `vocals` - Vocals configuration (`enabled: bool`)
 - `lyrics` - Lyrics configuration (`enabled: bool`, `source: "gemini" | "manual"`)
@@ -335,6 +335,7 @@ All project state is stored in a Pydantic-validated JSON file:
   - `GET /api/v1/generate/record-info?taskId=<id>` - Poll status
 - **Custom Mode:** Requires `style`, `title`, and optionally `prompt` (lyrics)
 - **Polling:** Exponential backoff, max 20 minutes wait
+- **Variant Selection:** Suno returns 2 variants per job. System tries all variants to find one with a usable `audioUrl`, falls back to `streamAudioUrl` if `audioUrl` is empty
 
 ### YouTube Data API
 - **Package:** `google-api-python-client>=2.0.0`
@@ -343,6 +344,7 @@ All project state is stored in a Pydantic-validated JSON file:
   - `videos().insert()` - Upload video (resumable)
   - `thumbnails().set()` - Upload thumbnail
 - **Token Caching:** Per-project `.youtube_token.json` file
+- **Thumbnail Permissions:** Thumbnail upload requires YouTube account permissions. If you get HTTP 403, enable custom thumbnails in YouTube Studio or verify account permissions. The video will still upload successfully; you can set the thumbnail manually if needed.
 
 ---
 

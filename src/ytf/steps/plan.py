@@ -36,7 +36,8 @@ def run(project_id: str) -> None:
 
     with StepLogger(project_id, "plan") as log:
         try:
-            update_status(project, "plan")
+            # Mark step as started (do not mark as successful until the end)
+            project.status.current_step = "plan"
             save_project(project)
 
             log.info("Starting plan step with Gemini integration")
@@ -84,35 +85,37 @@ def run(project_id: str) -> None:
 
             energy_text = f"\nEnergy level: {channel.prompt_constraints.energy_level}"
 
-            # Generate track data (style, title, prompt) for all tracks
-            log.info(f"Generating track data for {project.track_count} tracks...")
+            # Generate job prompts (each job produces 2 variants, so jobs = ceil(track_count/2))
+            import math
+            job_count = math.ceil(project.track_count / 2)
+            log.info(f"Generating {job_count} job prompts (will produce {project.track_count} tracks via {job_count} Suno jobs)...")
             track_data_list = provider.generate_track_data(
                 theme=project.theme,
-                track_count=project.track_count,
+                track_count=job_count,  # Generate prompts for jobs, not final tracks
                 vocals_enabled=project.vocals.enabled,
                 channel_constraints=f"{banned_terms_text}{style_guidance_text}{energy_text}",
             )
-            log.info(f"Generated {len(track_data_list)} track data entries")
+            log.info(f"Generated {len(track_data_list)} job prompt entries")
 
-            # Create PlanPrompt objects
+            # Create PlanPrompt objects (one per job)
             prompts = []
             for i, track_data in enumerate(track_data_list):
                 prompt = PlanPrompt(
-                    track_index=i,
+                    job_index=i,
                     style=track_data["style"],
                     title=track_data["title"],
                     prompt=track_data["prompt"],
                     vocals_enabled=project.vocals.enabled,
                 )
                 prompts.append(prompt)
-                log.info(f"Track {i}: {track_data['title']} ({track_data['style']})")
+                log.info(f"Job {i}: {track_data['title']} ({track_data['style']}) - will produce 2 variants")
 
             # Generate lyrics if vocals and lyrics are enabled
             if project.vocals.enabled and project.lyrics.enabled:
-                log.info("Generating lyrics for tracks with vocals...")
+                log.info("Generating lyrics for jobs with vocals...")
                 for prompt in prompts:
                     try:
-                        log.info(f"Generating lyrics for track {prompt.track_index}: {prompt.title}")
+                        log.info(f"Generating lyrics for job {prompt.job_index}: {prompt.title}")
                         lyrics = provider.generate_lyrics(
                             style=prompt.style,
                             title=prompt.title,
@@ -120,12 +123,12 @@ def run(project_id: str) -> None:
                         )
                         prompt.lyrics_text = lyrics
                         log.info(
-                            f"Generated lyrics for track {prompt.track_index} "
+                            f"Generated lyrics for job {prompt.job_index} "
                             f"({len(lyrics)} characters)"
                         )
                     except Exception as e:
                         log.error(
-                            f"Failed to generate lyrics for track {prompt.track_index}: {e}"
+                            f"Failed to generate lyrics for job {prompt.job_index}: {e}"
                         )
                         # Continue with other tracks even if one fails
                         raise

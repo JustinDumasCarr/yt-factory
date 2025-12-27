@@ -34,7 +34,8 @@ def run(project_id: str) -> None:
 
     with StepLogger(project_id, "upload") as log:
         try:
-            update_status(project, "upload")
+            # Mark step as started (do not mark as successful until the end)
+            project.status.current_step = "upload"
             save_project(project)
 
             log.info("Starting YouTube upload step")
@@ -183,21 +184,26 @@ def run(project_id: str) -> None:
             video_id = response["id"]
             log.info(f"Video uploaded successfully! Video ID: {video_id}")
 
-            # Upload thumbnail (required)
-            log.info(f"Uploading custom thumbnail: {thumbnail_path.resolve()}")
-            provider.upload_thumbnail(video_id, thumbnail_path)
-            thumbnail_uploaded = True
-            log.info("Thumbnail uploaded successfully")
-
-            # Persist YouTube data to project.json
+            # Persist video_id immediately so we can retry thumbnail later if needed.
             project.youtube = YouTubeData(
                 video_id=video_id,
                 uploaded_at=datetime.now().isoformat(),
                 privacy=privacy,
                 title=title,
-                thumbnail_uploaded=thumbnail_uploaded,
-                thumbnail_path=str(project.render.thumbnail_path) if project.render.thumbnail_path else None,
+                thumbnail_uploaded=False,
+                thumbnail_path=str(project.render.thumbnail_path)
+                if project.render and project.render.thumbnail_path
+                else None,
             )
+            save_project(project)
+
+            # Upload thumbnail (required)
+            log.info(f"Uploading custom thumbnail: {thumbnail_path.resolve()}")
+            provider.upload_thumbnail(video_id, thumbnail_path)
+            log.info("Thumbnail uploaded successfully")
+
+            # Persist YouTube data to project.json
+            project.youtube.thumbnail_uploaded = True
             update_status(project, "upload", error=None)
             save_project(project)
 

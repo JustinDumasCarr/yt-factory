@@ -38,7 +38,8 @@ def run(project_id: str) -> None:
 
     with StepLogger(project_id, "review") as log:
         try:
-            update_status(project, "review")
+            # Mark step as started (do not mark as successful until the end)
+            project.status.current_step = "review"
             save_project(project)
 
             log.info("Starting review step with QC checks")

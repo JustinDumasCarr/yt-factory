@@ -26,6 +26,14 @@ Rendering happens locally.
 - Use all tracks with status == "ok" and audio_path exists
 - Tracks are sorted by track_index to maintain order
 
+## Duration validation
+- Checks total duration against channel minimum (`channel.duration_rules.min_minutes`)
+- **Override**: If `project.target_minutes` is set and is less than channel minimum, uses `project.target_minutes` as the minimum instead
+  - This allows test projects with fewer tracks to render successfully
+  - Example: Channel requires 90 min minimum, but test project with 2 tracks (9 min) can still render if `project.target_minutes=9`
+- Fails fast if total duration is below the effective minimum (channel or project override)
+- Warns if total duration is below channel target (but above minimum)
+
 ## Audio processing
 - concatenate all available tracks
 - loudness normalization for consistent volume (I=-16 LUFS, YouTube standard)

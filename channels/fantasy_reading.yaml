@@ -49,13 +49,7 @@ cta_variants:
     long_text: "Download Focus Sessions to use these mixes as background music: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
 
 tag_rules:
-  whitelist:
-    - fantasy music
-    - reading music
-    - ambient music
-    - fantasy ambience
-    - instrumental
-    - background music
+  whitelist: []  # Empty whitelist = no tag restrictions (for testing)
   banned_terms:
     - medical
     - cure

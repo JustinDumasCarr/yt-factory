@@ -101,7 +101,8 @@ def run(project_id: str) -> None:
 
     with StepLogger(project_id, "render") as log:
         try:
-            update_status(project, "render")
+            # Mark step as started (do not mark as successful until the end)
+            project.status.current_step = "render"
             save_project(project)
 
             log.info("Starting render step")
@@ -170,14 +171,33 @@ def run(project_id: str) -> None:
             total_duration = sum(track.duration_seconds for track in available_tracks)
             log.info(f"Total duration: {format_timestamp(total_duration)} ({total_duration:.2f} seconds)")
 
-            # Check if duration meets channel target (fail fast if underfilled)
+            # Check if duration meets target/minimum (fail fast if underfilled)
+            # project.json is the source of truth; channel profile provides defaults.
+            target_minutes = project.target_minutes
+            min_minutes = None
             if channel:
-                target_minutes = channel.duration_rules.target_minutes
-                target_seconds = target_minutes * 60
+                if target_minutes is None:
+                    target_minutes = channel.duration_rules.target_minutes
                 min_minutes = channel.duration_rules.min_minutes
-                min_seconds = min_minutes * 60
 
-                if total_duration < min_seconds:
+            if target_minutes is None:
+                # Should not happen (new step always sets it), but keep render defensive.
+                target_minutes = 60
+
+            target_seconds = target_minutes * 60
+            min_seconds = None
+            if min_minutes is not None:
+                # If user explicitly created a shorter project than the channel minimum,
+                # honor the project and don't block render with an impossible minimum.
+                if project.target_minutes is not None and project.target_minutes < min_minutes:
+                    log.warning(
+                        f"Project target_minutes ({project.target_minutes}) is below channel min_minutes "
+                        f"({min_minutes}). Honoring project.json for this render."
+                    )
+                    min_minutes = project.target_minutes
+                min_seconds = (min_minutes or 0) * 60
+
+            if min_seconds is not None and total_duration < min_seconds:
                     missing_seconds = min_seconds - total_duration
                     missing_minutes = missing_seconds / 60
                     error_msg = (
@@ -188,14 +208,15 @@ def run(project_id: str) -> None:
                     )
                     log.error(error_msg)
                     raise RuntimeError(error_msg)
-                elif total_duration < target_seconds:
-                    missing_seconds = target_seconds - total_duration
-                    missing_minutes = missing_seconds / 60
-                    log.warning(
-                        f"Total duration {total_duration:.2f}s ({total_duration/60:.1f} min) "
-                        f"is below target {target_seconds}s ({target_minutes} min). "
-                        f"Missing {missing_seconds:.2f}s ({missing_minutes:.1f} min)."
-                    )
+
+            if total_duration < target_seconds:
+                missing_seconds = target_seconds - total_duration
+                missing_minutes = missing_seconds / 60
+                log.warning(
+                    f"Total duration {total_duration:.2f}s ({total_duration/60:.1f} min) "
+                    f"is below target {target_seconds}s ({target_minutes} min). "
+                    f"Missing {missing_seconds:.2f}s ({missing_minutes:.1f} min)."
+                )
 
             # Get track indices for persistence
             selected_indices = [track.track_index for track in available_tracks]
@@ -341,16 +362,15 @@ def run(project_id: str) -> None:
             chapters_lines = []
             cumulative_time = 0.0
 
-            # Create a lookup for track titles from plan.prompts
-            prompt_lookup = {}
-            if project.plan and project.plan.prompts:
-                for prompt in project.plan.prompts:
-                    prompt_lookup[prompt.track_index] = prompt.title
-
             for track in available_tracks:
                 timestamp = format_timestamp(cumulative_time)
-                # Use title from plan if available, otherwise use track index
-                title = prompt_lookup.get(track.track_index, f"Track {track.track_index + 1}")
+                # Use Track.title if available (includes variant suffix like "Title I" or "Title II"),
+                # otherwise fallback to track index
+                if hasattr(track, 'title') and track.title:
+                    title = track.title
+                else:
+                    # Fallback for backwards compatibility
+                    title = f"Track {track.track_index + 1}"
                 chapters_lines.append(f"{timestamp} {title}")
                 cumulative_time += track.duration_seconds
 

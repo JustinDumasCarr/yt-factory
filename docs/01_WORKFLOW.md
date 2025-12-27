@@ -43,23 +43,33 @@ Creates a project folder and `project.json` with user inputs:
 
 ### 2) Plan (Gemini, channel-driven)
 Generates:
-- music prompt variants for Suno (applies channel constraints: banned terms, style guidance, energy level)
-- optional lyrics for each track if vocals are on
+- **Job prompts** for Suno (count = `ceil(track_count/2)` since each job produces 2 variants)
+  - Applies channel constraints: banned terms, style guidance, energy level
+  - Each prompt has a `job_index` (0-based)
+- Optional lyrics for each job if vocals are on
 - YouTube metadata draft: title, description, tags (validated against channel tag rules)
 - Chooses CTA variant from channel profile and persists to `project.funnel.cta_variant_id`
 Writes into `project.json` under `plan`.
 
 ### 3) Generate (Suno)
-For each prompt:
-- submit generation job
-- poll until ready
-- download audio file(s)
-- compute duration
-- write `tracks[]` metadata into `project.json`
+For each job prompt:
+- submit one generation job
+- poll until ready (Suno returns 2 variants per job)
+- download **both variants** as separate audio files
+- assign sequential `track_index` (job 0 → tracks 0,1; job 1 → tracks 2,3; etc.)
+- create titles: base title + " I" for variant 0, base title + " II" for variant 1
+- compute duration for each variant
+- write 2 `Track` entries per job into `project.json.tracks[]`
+
+Variant handling:
+- Both variants are downloaded and persisted (not just one)
+- Prefers `audioUrl`, falls back to `streamAudioUrl` if `audioUrl` is empty
+- Each variant gets: `job_index`, `variant_index` (0 or 1), `title` (with suffix), `style`
 
 Failure policy:
-- if one track fails, continue with the rest
-- record error per track
+- if one variant fails, continue with the other variant
+- if entire job fails, mark both variants as failed
+- record error per variant
 
 ### 4) Review (QC + approvals)
 Runs quality control checks on all tracks:
@@ -78,7 +88,12 @@ Outputs:
 Track selection:
 - If `approved.txt` exists: use only approved tracks (still require status=="ok" and file exists)
 - Else: use all tracks where `status=="ok"` and `qc.passed==True`
-- Fail fast if total duration is below channel minimum
+- Duration validation:
+  - Checks total duration against channel minimum (`channel.duration_rules.min_minutes`)
+  - **Override**: If `project.target_minutes` is set and is less than channel minimum, uses `project.target_minutes` as the minimum instead
+    - This allows test projects with fewer tracks to render successfully
+  - Fail fast if total duration is below the effective minimum (channel or project override)
+  - Warns if total duration is below channel target (but above minimum)
 
 Process:
 - Background image policy (hard gate):
@@ -110,6 +125,7 @@ Outputs:
 - Idempotent:
   - if `project.json.youtube.video_id` exists and thumbnail already uploaded, skips
   - if `project.json.youtube.video_id` exists but thumbnail not uploaded, retries thumbnail upload
+- **Note**: Thumbnail upload requires YouTube account permissions. If you get HTTP 403, enable custom thumbnails in YouTube Studio or verify account permissions. The video will still upload successfully; you can set the thumbnail manually if needed.
 
 ## Common Commands (Quick Reference)
 

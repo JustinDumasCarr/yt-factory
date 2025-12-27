@@ -32,6 +32,10 @@ Uploads use the official YouTube Data API with OAuth.
   - the file must exist at `projects/<id>/<thumbnail_path>`
 - Thumbnail upload failure **fails the step** (so you can retry later).
 - Thumbnail upload status is persisted in `project.json.youtube.thumbnail_uploaded` and `thumbnail_path`.
+- **Note**: Thumbnail upload requires YouTube account permissions. If you get HTTP 403 "The authenticated user doesn't have permissions to upload and set custom video thumbnails":
+  - Enable custom thumbnails in YouTube Studio: https://studio.youtube.com → Settings → Channel → Upload defaults
+  - Or verify your account has the necessary permissions (some accounts need verification or channel requirements)
+  - The video will still upload successfully; you can set the thumbnail manually in YouTube Studio if needed
 
 ## Reliability
 - Use resumable uploads with exponential backoff retry (max 10 retries).

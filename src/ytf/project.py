@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # Step enum values
@@ -108,15 +108,38 @@ class ReviewData(BaseModel):
 
 
 class PlanPrompt(BaseModel):
-    """A single prompt for track generation."""
+    """A single prompt for Suno generation job (produces 2 variants)."""
 
-    track_index: int
+    job_index: Optional[int] = None  # Job index (0-based). Each job produces 2 variants.
     style: str  # Music style/genre (required for Suno customMode)
-    title: str  # Track title (required for Suno customMode)
+    title: str  # Base track title (required for Suno customMode). Variants will be "Title I" and "Title II".
     prompt: str  # Musical description with mood, instrumentation, tempo
     seed_hint: Optional[str] = None
     vocals_enabled: bool = False
     lyrics_text: Optional[str] = None  # Lyrics text (used as prompt in Suno when instrumental=false)
+    
+    # Backwards compatibility: allow track_index for older project.json files
+    track_index: Optional[int] = None  # Deprecated: use job_index instead
+    
+    @model_validator(mode='before')
+    @classmethod
+    def handle_backwards_compatibility(cls, data):
+        """Convert old track_index to job_index for backwards compatibility."""
+        if isinstance(data, dict):
+            # If job_index is missing but track_index exists, convert it
+            if 'job_index' not in data and 'track_index' in data:
+                # Old behavior: each track_index was a separate job
+                # New behavior: each job_index produces 2 variants
+                # So job_index = track_index (1:1 mapping for old projects)
+                data['job_index'] = data['track_index']
+        return data
+    
+    @model_validator(mode='after')
+    def validate_job_index(self):
+        """Ensure job_index is set."""
+        if self.job_index is None:
+            raise ValueError("job_index is required (or track_index for backwards compatibility)")
+        return self
 
 
 class YouTubeMetadata(BaseModel):
@@ -143,12 +166,16 @@ class TrackError(BaseModel):
 
 
 class Track(BaseModel):
-    """Generated track metadata."""
+    """Generated track metadata (one per variant)."""
 
-    track_index: int
-    prompt: str
+    track_index: int  # Final track index (0-based, sequential across all variants)
+    title: str  # Track title (e.g., "Whispering Scrolls I" or "Whispering Scrolls II")
+    style: str  # Music style/genre
+    prompt: str  # Musical description
     provider: str = "suno"
-    job_id: Optional[str] = None
+    job_id: Optional[str] = None  # Suno job ID (shared across both variants from same job)
+    job_index: int  # Which planned job this came from (0-based)
+    variant_index: int  # Which variant (0 or 1) from the job
     audio_url: Optional[str] = None  # Last known audio URL for resume
     audio_path: Optional[str] = None
     duration_seconds: float = 0.0
