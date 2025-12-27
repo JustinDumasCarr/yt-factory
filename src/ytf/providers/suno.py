@@ -145,22 +145,58 @@ class SunoProvider:
                     "error": data.get("msg", "Unknown error"),
                 }
 
-            # Check if generation is complete
-            response_data = data.get("data", {}).get("response", {})
-            suno_data = response_data.get("sunoData", [])
-
-            if suno_data and len(suno_data) > 0:
-                # Check if we have at least one track with audioUrl
-                has_audio = any(
-                    track.get("audioUrl") for track in suno_data if isinstance(track, dict)
-                )
-                if has_audio:
-                    return {
-                        "status": "complete",
-                        "sunoData": suno_data,
-                        "raw": json.dumps(data),
-                    }
-
+            # Check task status from API response
+            data_obj = data.get("data", {})
+            task_status = data_obj.get("status", "").upper()
+            
+            # Status values: PENDING, TEXT_SUCCESS, FIRST_SUCCESS, SUCCESS, 
+            # CREATE_TASK_FAILED, GENERATE_AUDIO_FAILED, CALLBACK_EXCEPTION, SENSITIVE_WORD_ERROR
+            
+            # Check for failure statuses
+            if task_status in ("CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "SENSITIVE_WORD_ERROR"):
+                error_msg = data_obj.get("errorMessage", f"Task failed with status: {task_status}")
+                return {
+                    "status": "failed",
+                    "sunoData": [],
+                    "raw": json.dumps(data),
+                    "error": error_msg,
+                }
+            
+            # Check if generation is complete (SUCCESS means all tracks ready)
+            if task_status == "SUCCESS":
+                response_data = data_obj.get("response")
+                if response_data:
+                    suno_data = response_data.get("sunoData", [])
+                    if suno_data and len(suno_data) > 0:
+                        # Verify we have at least one track with audioUrl
+                        has_audio = any(
+                            track.get("audioUrl") for track in suno_data if isinstance(track, dict)
+                        )
+                        if has_audio:
+                            return {
+                                "status": "complete",
+                                "sunoData": suno_data,
+                                "raw": json.dumps(data),
+                            }
+            
+            # FIRST_SUCCESS means first track is ready (we can use it)
+            if task_status == "FIRST_SUCCESS":
+                response_data = data_obj.get("response")
+                if response_data:
+                    suno_data = response_data.get("sunoData", [])
+                    if suno_data and len(suno_data) > 0:
+                        has_audio = any(
+                            track.get("audioUrl") for track in suno_data if isinstance(track, dict)
+                        )
+                        if has_audio:
+                            return {
+                                "status": "complete",
+                                "sunoData": suno_data,
+                                "raw": json.dumps(data),
+                            }
+            
+            # TEXT_SUCCESS means lyrics/text generation done, but audio not ready yet
+            # PENDING means still processing
             # Still processing
             return {
                 "status": "pending",

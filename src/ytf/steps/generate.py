@@ -252,15 +252,35 @@ def run(project_id: str) -> None:
 
                     # Compute duration
                     log.info(f"Computing duration for track {track_index}")
+                    duration = None
+                    
+                    # Try ffprobe first (canonical method)
                     try:
                         duration = get_duration_seconds(audio_path)
                         log.info(
-                            f"Track {track_index} duration: {duration:.2f} seconds"
+                            f"Track {track_index} duration (ffprobe): {duration:.2f} seconds"
                         )
                     except Exception as e:
-                        log.error(
-                            f"Failed to compute duration for track {track_index}: {e}"
+                        log.warning(
+                            f"ffprobe failed for track {track_index}: {e}. Trying Suno duration as fallback."
                         )
+                        # Fallback: use duration from Suno response if available
+                        suno_duration = track_data.get("duration")
+                        if suno_duration:
+                            try:
+                                duration = float(suno_duration)
+                                log.info(
+                                    f"Track {track_index} duration (from Suno): {duration:.2f} seconds"
+                                )
+                            except (ValueError, TypeError):
+                                log.error(
+                                    f"Invalid duration from Suno for track {track_index}: {suno_duration}"
+                                )
+                                duration = None
+                    
+                    if duration is None or duration <= 0:
+                        error_msg = "Could not determine duration (ffprobe failed and Suno duration unavailable)"
+                        log.error(f"Track {track_index}: {error_msg}")
                         # Mark as failed
                         track = Track(
                             track_index=track_index,
@@ -270,7 +290,7 @@ def run(project_id: str) -> None:
                             audio_path=str(relative_audio_path),
                             status="failed",
                             error=TrackError(
-                                message=f"Duration computation failed: {e}",
+                                message=error_msg,
                                 raw=None,
                             ),
                         )
