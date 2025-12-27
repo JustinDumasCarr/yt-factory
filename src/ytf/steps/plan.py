@@ -130,45 +130,101 @@ def run(project_id: str) -> None:
                         # Continue with other tracks even if one fails
                         raise
 
-            # Generate YouTube metadata
+            # Generate YouTube metadata with retry logic for validation
             log.info("Generating YouTube metadata...")
-            metadata_dict = provider.generate_youtube_metadata(
-                theme=project.theme,
-                track_count=project.track_count,
-            )
-            youtube_metadata = YouTubeMetadata(
-                title=metadata_dict["title"],
-                description=metadata_dict["description"],
-                tags=metadata_dict["tags"],
-            )
-
-            # Validate metadata against channel tag rules
-            log.info("Validating metadata against channel rules...")
-
-            # Check for banned terms in title, description, and tags
-            all_text = f"{youtube_metadata.title} {youtube_metadata.description} {' '.join(youtube_metadata.tags)}".lower()
-            banned_found = []
-            for banned_term in channel.tag_rules.banned_terms:
-                if banned_term.lower() in all_text:
-                    banned_found.append(banned_term)
-
-            if banned_found:
-                error_msg = f"Banned terms found in metadata: {', '.join(banned_found)}. Channel: {project.channel_id}"
-                log.error(error_msg)
-                raise ValueError(error_msg)
-
-            # Enforce tag whitelist if defined
-            if channel.tag_rules.whitelist:
-                filtered_tags = []
-                for tag in youtube_metadata.tags:
-                    tag_lower = tag.lower()
-                    # Check if tag matches any whitelist entry (case-insensitive)
-                    if any(allowed.lower() in tag_lower or tag_lower in allowed.lower() for allowed in channel.tag_rules.whitelist):
-                        filtered_tags.append(tag)
+            max_retries = 2
+            youtube_metadata = None
+            
+            for attempt in range(max_retries + 1):
+                try:
+                    metadata_dict = provider.generate_youtube_metadata(
+                        theme=project.theme,
+                        track_count=project.track_count,
+                    )
+                    candidate_metadata = YouTubeMetadata(
+                        title=metadata_dict["title"],
+                        description=metadata_dict["description"],
+                        tags=metadata_dict["tags"],
+                    )
+                    
+                    # Validate metadata against channel tag rules
+                    log.info(f"Validating metadata (attempt {attempt + 1}/{max_retries + 1})...")
+                    
+                    validation_failed = False
+                    validation_errors = []
+                    
+                    # Check for banned terms in title, description, and tags
+                    all_text = f"{candidate_metadata.title} {candidate_metadata.description} {' '.join(candidate_metadata.tags)}".lower()
+                    banned_found = []
+                    for banned_term in channel.tag_rules.banned_terms:
+                        if banned_term.lower() in all_text:
+                            banned_found.append(banned_term)
+                    
+                    if banned_found:
+                        validation_failed = True
+                        validation_errors.append(f"Banned terms: {', '.join(banned_found)}")
+                    
+                    # Enforce tag whitelist if defined (strict: all tags must be in whitelist)
+                    if channel.tag_rules.whitelist:
+                        invalid_tags = []
+                        for tag in candidate_metadata.tags:
+                            tag_lower = tag.lower()
+                            # Strict check: tag must exactly match or be contained in a whitelist entry
+                            if not any(
+                                allowed.lower() == tag_lower or 
+                                tag_lower in allowed.lower() or 
+                                allowed.lower() in tag_lower
+                                for allowed in channel.tag_rules.whitelist
+                            ):
+                                invalid_tags.append(tag)
+                        
+                        if invalid_tags:
+                            validation_failed = True
+                            validation_errors.append(f"Tags not in whitelist: {', '.join(invalid_tags)}")
+                    
+                    # If validation passed, use this metadata
+                    if not validation_failed:
+                        youtube_metadata = candidate_metadata
+                        if channel.tag_rules.whitelist:
+                            # Filter to only whitelisted tags
+                            filtered_tags = []
+                            for tag in candidate_metadata.tags:
+                                tag_lower = tag.lower()
+                                if any(
+                                    allowed.lower() == tag_lower or 
+                                    tag_lower in allowed.lower() or 
+                                    allowed.lower() in tag_lower
+                                    for allowed in channel.tag_rules.whitelist
+                                ):
+                                    filtered_tags.append(tag)
+                            youtube_metadata.tags = filtered_tags
+                            log.info(f"Filtered tags to whitelist: {len(filtered_tags)} tags")
+                        break
                     else:
-                        log.warning(f"Tag '{tag}' not in whitelist, removing")
-                youtube_metadata.tags = filtered_tags
-                log.info(f"Filtered tags to whitelist: {len(filtered_tags)} tags")
+                        # Validation failed, log and retry if attempts remain
+                        if attempt < max_retries:
+                            log.warning(
+                                f"Metadata validation failed: {', '.join(validation_errors)}. "
+                                f"Retrying with stricter prompt..."
+                            )
+                            # Note: In a future enhancement, we could pass stricter constraints to Gemini
+                            # For now, we just retry and hope Gemini generates better metadata
+                        else:
+                            # All retries exhausted, fail fast
+                            error_msg = (
+                                f"Metadata validation failed after {max_retries + 1} attempts. "
+                                f"Errors: {', '.join(validation_errors)}. Channel: {project.channel_id}"
+                            )
+                            log.error(error_msg)
+                            raise ValueError(error_msg)
+                            
+                except Exception as e:
+                    if attempt >= max_retries:
+                        raise
+                    log.warning(f"Metadata generation failed (attempt {attempt + 1}): {e}. Retrying...")
+            
+            if youtube_metadata is None:
+                raise RuntimeError("Failed to generate valid YouTube metadata after retries")
 
             log.info(f"YouTube title: {youtube_metadata.title}")
             log.info(f"YouTube tags: {', '.join(youtube_metadata.tags)}")

@@ -222,30 +222,36 @@ def run(project_id: str) -> None:
             ffmpeg.normalize_loudness(concat_audio_path, normalized_audio_path)
             log.info(f"Normalized audio saved to {normalized_audio_path}")
 
-            # Step 3: Handle background image
+            # Step 3: Handle background image (always per-project; hard gate for upload)
+            # We want each YouTube video to have its own image generated for that project.
             background_path = assets_dir / "background.png"
-            if not background_path.exists():
-                log.info("Background image not found, generating with Gemini...")
-                try:
-                    # Try to generate using Gemini
-                    provider = GeminiProvider()
-                    provider.generate_background_image(
-                        theme=project.theme,
-                        output_path=str(background_path),
-                    )
-                    log.info(f"Generated background image using Gemini at {background_path}")
-                except Exception as e:
-                    # Fall back to default black background if Gemini fails
-                    log.warning(f"Failed to generate background with Gemini: {e}")
-                    log.info("Falling back to default black background...")
-                    ffmpeg.generate_default_background(
-                        background_path,
-                        width=project.video.width,
-                        height=project.video.height,
-                    )
-                    log.info(f"Generated default background at {background_path}")
+
+            if background_path.exists():
+                log.info(f"Using existing project background: {background_path}")
             else:
-                log.info(f"Using existing background image at {background_path}")
+                log.info("Generating background image with Gemini...")
+                provider = GeminiProvider()
+
+                # Build channel-aware prompt
+                generation_theme = project.theme
+                if channel:
+                    if channel.prompt_constraints.style_guidance:
+                        generation_theme = (
+                            f"{project.theme}. {channel.prompt_constraints.style_guidance}"
+                        )
+                    if channel.intent:
+                        generation_theme = f"{generation_theme} (Intent: {channel.intent})"
+
+                provider.generate_background_image(
+                    theme=generation_theme,
+                    output_path=str(background_path),
+                )
+
+                if not background_path.exists():
+                    raise RuntimeError(
+                        f"Gemini did not create background image at {background_path}"
+                    )
+                log.info(f"Generated background image using Gemini at {background_path}")
 
             # Step 3.5: Create thumbnail with text overlay
             log.info("Creating thumbnail with text overlay...")
@@ -255,6 +261,23 @@ def run(project_id: str) -> None:
             album_title = "Music Compilation"
             if project.plan and project.plan.youtube_metadata:
                 album_title = project.plan.youtube_metadata.title
+            
+            # Check for safe words and sanitize if needed
+            if channel and channel.thumbnail_style.safe_words:
+                original_title = album_title
+                for safe_word in channel.thumbnail_style.safe_words:
+                    if safe_word.lower() in album_title.lower():
+                        log.warning(
+                            f"Title contains safe word '{safe_word}', sanitizing: {album_title}"
+                        )
+                        # Remove safe word (case-insensitive)
+                        import re
+                        album_title = re.sub(
+                            re.escape(safe_word), "", album_title, flags=re.IGNORECASE
+                        )
+                        album_title = " ".join(album_title.split())  # Clean up extra spaces
+                        log.info(f"Sanitized title: {album_title}")
+                        break
             
             # Clean title (remove track count) and process
             cleaned_title = clean_title(album_title)
@@ -266,24 +289,38 @@ def run(project_id: str) -> None:
             channel_uppercase = channel_title.upper()
             channel_spaced = add_letter_spacing(channel_uppercase)
             
-            thumbnail_created = False
-            try:
-                ffmpeg.overlay_text_on_image(
-                    image_path=background_path,
-                    output_path=thumbnail_path,
-                    title=title_spaced,
-                    channel_title=channel_spaced,
-                    width=project.video.width,
-                    height=project.video.height,
-                )
-                if thumbnail_path.exists():
-                    log.info(f"Thumbnail with text overlay saved to {thumbnail_path}")
-                    thumbnail_created = True
-                else:
-                    log.warning("Thumbnail file was not created")
-            except Exception as e:
-                log.warning(f"Failed to create thumbnail with text overlay: {e}")
-                log.info("Continuing without thumbnail...")
+            # Get thumbnail style from channel config
+            thumbnail_style = None
+            if channel:
+                thumbnail_style = channel.thumbnail_style
+            
+            # Check for custom font in brand folder
+            custom_font_path = None
+            if project.channel_id:
+                repo_root = PROJECTS_DIR.parent  # Go up from projects/ to repo root
+                brand_dir = repo_root / "assets" / "brand" / project.channel_id
+                for font_ext in [".ttf", ".otf"]:
+                    font_path = brand_dir / f"font{font_ext}"
+                    if font_path.exists():
+                        custom_font_path = font_path
+                        log.info(f"Using custom font from brand folder: {font_path}")
+                        break
+            
+            ffmpeg.overlay_text_on_image(
+                image_path=background_path,
+                output_path=thumbnail_path,
+                title=title_spaced,
+                channel_title=channel_spaced,
+                width=project.video.width,
+                height=project.video.height,
+                thumbnail_style=thumbnail_style,
+                custom_font_path=custom_font_path,
+            )
+            if not thumbnail_path.exists():
+                raise RuntimeError(f"Thumbnail file was not created at {thumbnail_path}")
+
+            log.info(f"Thumbnail with text overlay saved to {thumbnail_path}")
+            thumbnail_created = True
 
             # Step 4: Create video
             log.info("Creating video with static background...")

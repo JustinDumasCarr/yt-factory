@@ -81,9 +81,17 @@ Track selection:
 - Fail fast if total duration is below channel minimum
 
 Process:
-- choose background image from `assets/background.png` (or configured path)
+- Background image policy (hard gate):
+  - Every project must have its own generated background at `projects/<project_id>/assets/background.png`.
+  - If it does not exist, the render step generates it with Gemini using channel-aware prompt guidance.
+  - If background generation fails, render fails (no upload) so you can re-run render once assets are available.
 - concatenate audio tracks until target length reached
 - normalize loudness
+- Create thumbnail with channel-specific styling:
+  - Uses `channel.thumbnail_style` (font, layout, colors)
+  - Custom font from `assets/brand/<channel_id>/font.ttf` if present
+  - Sanitizes title if it contains `safe_words`
+  - **Hard gate**: if thumbnail generation fails, render fails (no upload)
 - mux static image + audio into final MP4
 
 Outputs:
@@ -91,13 +99,17 @@ Outputs:
 - `output/chapters.txt`
 - `output/youtube_description.txt` (templated with channel description + CTA)
 - `output/pinned_comment.txt` (short + long CTA variants)
+- `assets/thumbnail.png` (channel-styled thumbnail)
 
 ### 6) Upload (YouTube Data API)
 - OAuth auth flow, token cached locally
 - resumable upload
 - apply metadata and upload settings
 - record returned video ID in `project.json`
-- Idempotent: if `project.json.youtube.video_id` exists, skips upload
+- **Hard gate**: upload will not proceed without a generated thumbnail (`project.render.thumbnail_path` must exist on disk)
+- Idempotent:
+  - if `project.json.youtube.video_id` exists and thumbnail already uploaded, skips
+  - if `project.json.youtube.video_id` exists but thumbnail not uploaded, retries thumbnail upload
 
 ## Runner commands
 

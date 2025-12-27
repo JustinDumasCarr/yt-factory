@@ -329,9 +329,11 @@ def overlay_text_on_image(
     channel_title: str,
     width: int = 1920,
     height: int = 1080,
+    thumbnail_style: Optional[object] = None,  # ThumbnailStyle from channel config
+    custom_font_path: Optional[Union[str, Path]] = None,
 ) -> None:
     """
-    Overlay text on an image using FFmpeg drawtext filter with Roman inscription styling.
+    Overlay text on an image using FFmpeg drawtext filter with channel-aware styling.
 
     Args:
         image_path: Path to input image
@@ -340,6 +342,8 @@ def overlay_text_on_image(
         channel_title: Channel title text (already processed with caps and letter spacing)
         width: Image width in pixels (default 1920)
         height: Image height in pixels (default 1080)
+        thumbnail_style: Optional ThumbnailStyle config from channel
+        custom_font_path: Optional path to custom font file (from brand folder)
 
     Raises:
         RuntimeError: If FFmpeg fails to overlay text
@@ -354,33 +358,46 @@ def overlay_text_on_image(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Find Cinzel fonts
-    cinzel_bold = find_cinzel_font(bold=True)
-    cinzel_regular = find_cinzel_font(bold=False)
+    # Determine font files to use
+    # Priority: custom_font_path > find_cinzel > system fallback
+    title_font_file_path = None
+    subtitle_font_file_path = None
     
-    # Fallback to system serif fonts if Cinzel not found
-    if not cinzel_bold:
-        # Try common serif fonts on macOS
-        fallback_fonts = [
-            "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf",
-            "/System/Library/Fonts/Supplemental/Times.ttc",
-            "/System/Library/Fonts/Helvetica.ttc",
-        ]
-        for font in fallback_fonts:
-            if Path(font).exists():
-                cinzel_bold = font
-                break
-    
-    if not cinzel_regular:
-        fallback_fonts = [
-            "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
-            "/System/Library/Fonts/Supplemental/Times.ttc",
-            "/System/Library/Fonts/Helvetica.ttc",
-        ]
-        for font in fallback_fonts:
-            if Path(font).exists():
-                cinzel_regular = font
-                break
+    if custom_font_path and Path(custom_font_path).exists():
+        # Use custom font for both title and subtitle
+        title_font_file_path = str(custom_font_path)
+        subtitle_font_file_path = str(custom_font_path)
+    else:
+        # Find Cinzel fonts
+        cinzel_bold = find_cinzel_font(bold=True)
+        cinzel_regular = find_cinzel_font(bold=False)
+        
+        # Fallback to system serif fonts if Cinzel not found
+        if not cinzel_bold:
+            # Try common serif fonts on macOS
+            fallback_fonts = [
+                "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf",
+                "/System/Library/Fonts/Supplemental/Times.ttc",
+                "/System/Library/Fonts/Helvetica.ttc",
+            ]
+            for font in fallback_fonts:
+                if Path(font).exists():
+                    cinzel_bold = font
+                    break
+        
+        if not cinzel_regular:
+            fallback_fonts = [
+                "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+                "/System/Library/Fonts/Supplemental/Times.ttc",
+                "/System/Library/Fonts/Helvetica.ttc",
+            ]
+            for font in fallback_fonts:
+                if Path(font).exists():
+                    cinzel_regular = font
+                    break
+        
+        title_font_file_path = cinzel_bold
+        subtitle_font_file_path = cinzel_regular
 
     # Escape special characters for FFmpeg drawtext filter
     def escape_text(text: str) -> str:
@@ -396,51 +413,84 @@ def overlay_text_on_image(
     title_escaped = escape_text(title)
     channel_title_escaped = escape_text(channel_title)
 
-    # Calculate dynamic font sizes based on text length
+    # Calculate dynamic font sizes based on text length and channel config
     # Leave margins: 100px on each side (200px total)
     available_width = width - 200
     
-    # Estimate character width: with letter spacing, each character is roughly 1.2x font size
-    # For title: start with 75px, scale down if needed
-    title_base_size = 75
-    title_char_count = len(title)
-    # Approximate: with spacing, width ≈ char_count * fontsize * 1.2
-    title_estimated_width = title_char_count * title_base_size * 1.2
-    if title_estimated_width > available_width:
-        title_font_size = int((available_width / title_char_count) / 1.2)
-        title_font_size = max(30, title_font_size)  # Minimum 30px
+    # Get font sizes from thumbnail_style if provided, otherwise calculate
+    if thumbnail_style and hasattr(thumbnail_style, "font_size_title") and thumbnail_style.font_size_title:
+        title_font_size = thumbnail_style.font_size_title
     else:
-        title_font_size = title_base_size
+        # Estimate character width: with letter spacing, each character is roughly 1.2x font size
+        # For title: start with 75px, scale down if needed
+        title_base_size = 75
+        title_char_count = len(title)
+        # Approximate: with spacing, width ≈ char_count * fontsize * 1.2
+        title_estimated_width = title_char_count * title_base_size * 1.2
+        if title_estimated_width > available_width:
+            title_font_size = int((available_width / title_char_count) / 1.2)
+            title_font_size = max(30, title_font_size)  # Minimum 30px
+        else:
+            title_font_size = title_base_size
     
-    # For subtitle: start with 55px, scale down if needed
-    subtitle_base_size = 55
-    subtitle_char_count = len(channel_title)
-    subtitle_estimated_width = subtitle_char_count * subtitle_base_size * 1.2
-    if subtitle_estimated_width > available_width:
-        subtitle_font_size = int((available_width / subtitle_char_count) / 1.2)
-        subtitle_font_size = max(25, subtitle_font_size)  # Minimum 25px
+    if thumbnail_style and hasattr(thumbnail_style, "font_size_subtitle") and thumbnail_style.font_size_subtitle:
+        subtitle_font_size = thumbnail_style.font_size_subtitle
     else:
-        subtitle_font_size = subtitle_base_size
+        # For subtitle: start with 55px, scale down if needed
+        subtitle_base_size = 55
+        subtitle_char_count = len(channel_title)
+        subtitle_estimated_width = subtitle_char_count * subtitle_base_size * 1.2
+        if subtitle_estimated_width > available_width:
+            subtitle_font_size = int((available_width / subtitle_char_count) / 1.2)
+            subtitle_font_size = max(25, subtitle_font_size)  # Minimum 25px
+        else:
+            subtitle_font_size = subtitle_base_size
 
-    # Calculate positions - centered horizontally
-    # Main title at 66% down, subtitle at 78% down
-    title_x = f"(w-text_w)/2"
-    title_y = f"h*0.66"
-    subtitle_x = f"(w-text_w)/2"
-    subtitle_y = f"h*0.78"
+    # Get text color from thumbnail_style if provided
+    text_color = "0xF6F6F0"  # Default warm off-white
+    if thumbnail_style and hasattr(thumbnail_style, "text_color") and thumbnail_style.text_color:
+        text_color = thumbnail_style.text_color
 
-    # Build drawtext filters with Roman inscription styling
-    # Color: #F6F6F0 (warm off-white)
-    # Outline: borderw=2, bordercolor=black@0.25
-    # Shadow: shadowx=2, shadowy=4, shadowcolor=black@0.6
+    # Calculate positions based on layout_variant
+    layout_variant = "big_title_small_subtitle"  # Default
+    if thumbnail_style and hasattr(thumbnail_style, "layout_variant"):
+        layout_variant = thumbnail_style.layout_variant
     
-    # Main title: Cinzel Bold, dynamically sized font
-    # Color format: 0xRRGGBB for FFmpeg
-    title_font_file = f":fontfile={cinzel_bold}" if cinzel_bold else ""
+    if layout_variant == "centered_title":
+        # Both centered, title at 50%, subtitle at 60%
+        title_x = f"(w-text_w)/2"
+        title_y = f"h*0.50"
+        subtitle_x = f"(w-text_w)/2"
+        subtitle_y = f"h*0.60"
+    elif layout_variant == "bottom_title":
+        # Title at bottom, subtitle above it
+        title_x = f"(w-text_w)/2"
+        title_y = f"h*0.85"
+        subtitle_x = f"(w-text_w)/2"
+        subtitle_y = f"h*0.75"
+    else:  # big_title_small_subtitle (default)
+        # Main title at 66% down, subtitle at 78% down
+        title_x = f"(w-text_w)/2"
+        title_y = f"h*0.66"
+        subtitle_x = f"(w-text_w)/2"
+        subtitle_y = f"h*0.78"
+    
+    # Override position if explicitly set in thumbnail_style
+    if thumbnail_style and hasattr(thumbnail_style, "text_position") and thumbnail_style.text_position:
+        # text_position format: "title_x,title_y,subtitle_x,subtitle_y" or FFmpeg expressions
+        # For now, we'll use the calculated positions above
+        pass
+
+    # Build drawtext filters with channel-aware styling
+    # Note: background_overlay support can be added later if needed
+    # For now, we focus on font, size, color, and position customization
+    
+    # Main title: dynamically sized font with channel styling
+    title_font_file = f":fontfile={title_font_file_path}" if title_font_file_path else ""
     title_filter = (
         f"drawtext=text='{title_escaped}':"
         f"fontsize={title_font_size}:"
-        f"fontcolor=0xF6F6F0:"
+        f"fontcolor={text_color}:"
         f"borderw=2:"
         f"bordercolor=black@0.25:"
         f"shadowx=2:"
@@ -451,12 +501,12 @@ def overlay_text_on_image(
         f"{title_font_file}"
     )
 
-    # Subtitle: Cinzel Regular, dynamically sized font
-    subtitle_font_file = f":fontfile={cinzel_regular}" if cinzel_regular else ""
+    # Subtitle: dynamically sized font with channel styling
+    subtitle_font_file = f":fontfile={subtitle_font_file_path}" if subtitle_font_file_path else ""
     subtitle_filter = (
         f"drawtext=text='{channel_title_escaped}':"
         f"fontsize={subtitle_font_size}:"
-        f"fontcolor=0xF6F6F0:"
+        f"fontcolor={text_color}:"
         f"borderw=2:"
         f"bordercolor=black@0.25:"
         f"shadowx=2:"

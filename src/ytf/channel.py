@@ -64,8 +64,13 @@ class ThumbnailStyle(BaseModel):
     """Thumbnail style preset."""
 
     font_family: str = "Cinzel"
-    layout_variant: str = "big_title_small_subtitle"
+    layout_variant: str = "big_title_small_subtitle"  # big_title_small_subtitle, centered_title, bottom_title
     safe_words: list[str] = Field(default_factory=list)  # Words to avoid in thumbnails
+    font_size_title: Optional[int] = None  # Override calculated font size for title (default: auto-calculated)
+    font_size_subtitle: Optional[int] = None  # Override calculated font size for subtitle (default: auto-calculated)
+    text_color: str = "0xF6F6F0"  # FFmpeg color format (0xRRGGBB), default: warm off-white
+    text_position: Optional[str] = None  # Override position (default: based on layout_variant)
+    background_overlay: Optional[str] = None  # Optional rgba overlay for text readability (e.g., "black@0.3")
 
 
 class UploadDefaults(BaseModel):

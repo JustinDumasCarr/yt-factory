@@ -12,7 +12,7 @@ Rendering happens locally.
 - Upgrade your plan at: https://ai.google.dev/pricing
 - Prompt based on project theme for scenic, atmospheric backgrounds
 - Aspect ratio: 16:9 (1920x1080)
-- Falls back to default black background if Gemini generation fails (e.g., rate limits, quota exceeded)
+- **Hard gate**: if Gemini generation fails, render fails (no upload) so you can retry later
 
 ## Thumbnail Creation
 - Creates `assets/thumbnail.png` with text overlay
@@ -20,6 +20,7 @@ Rendering happens locally.
 - Overlays theme/prompt text at bottom
 - White text with black outline for readability
 - Same dimensions as background (1920x1080)
+- **Hard gate**: if thumbnail creation fails, render fails (no upload)
 
 ## Track filtering
 - Use all tracks with status == "ok" and audio_path exists

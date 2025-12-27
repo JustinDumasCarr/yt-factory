@@ -8,11 +8,14 @@ Each project is a folder containing:
 - logs/
 
 ## Folder layout
+
+### Project folder
 projects/<project_id>/
   project.json
   tracks/
   assets/
-    background.png
+    background.png (Gemini-generated per project; required for upload)
+    thumbnail.png (generated per project; required for upload)
   output/
     final.mp4
     chapters.txt
@@ -26,6 +29,12 @@ projects/<project_id>/
     review.log
     render.log
     upload.log
+
+### Brand assets folder (repo root)
+assets/brand/<channel_id>/
+  (Backgrounds are not stored here; each project generates its own background.)
+  font.ttf or font.otf (custom font override, optional)
+  thumbnail_template.png (optional, future use)
 
 ## project.json shape (v2 - channel-driven)
 Top-level fields:
@@ -82,7 +91,8 @@ Review/QC:
 
 Render:
 - render:
-  - background_path
+  - background_path (per-project generated)
+  - thumbnail_path (per-project generated with channel styling)
   - selected_track_indices[]
   - output_mp4_path
   - chapters_path

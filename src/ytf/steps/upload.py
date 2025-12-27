@@ -39,14 +39,46 @@ def run(project_id: str) -> None:
 
             log.info("Starting YouTube upload step")
 
-            # Check if already uploaded (idempotent behavior: skip if video_id exists)
+            # If already uploaded, still allow retrying thumbnail upload.
             if project.youtube and project.youtube.video_id:
+                video_id = project.youtube.video_id
+                if project.youtube.thumbnail_uploaded:
+                    log.info(
+                        f"Video already uploaded and thumbnail uploaded. Video ID: {video_id}. "
+                        f"URL: https://www.youtube.com/watch?v={video_id}. "
+                        "Skipping upload step."
+                    )
+                    update_status(project, "upload", error=None)
+                    save_project(project)
+                    return
+
                 log.info(
-                    f"Video already uploaded. Video ID: {project.youtube.video_id}. "
-                    f"URL: https://www.youtube.com/watch?v={project.youtube.video_id}. "
-                    "Skipping upload step."
+                    f"Video already uploaded (Video ID: {video_id}) but thumbnail not uploaded yet. "
+                    "Will attempt thumbnail upload."
                 )
-                # Idempotent skip: update status to success and return
+
+                # Validate prerequisites for thumbnail upload
+                if not project.render or not project.render.thumbnail_path:
+                    raise RuntimeError(
+                        "Render step must generate a thumbnail before upload. "
+                        "No thumbnail path found in project.render."
+                    )
+
+                thumbnail_path = project_dir / project.render.thumbnail_path
+                if not thumbnail_path.exists():
+                    raise FileNotFoundError(
+                        f"Thumbnail file not found: {thumbnail_path}. "
+                        "Please re-run render to generate it."
+                    )
+
+                provider = YouTubeProvider(project_id)
+                log.info(f"Uploading custom thumbnail: {thumbnail_path.resolve()}")
+                provider.upload_thumbnail(video_id, thumbnail_path)
+                log.info("Thumbnail uploaded successfully")
+
+                # Persist updated YouTube data
+                project.youtube.thumbnail_uploaded = True
+                project.youtube.thumbnail_path = str(project.render.thumbnail_path)
                 update_status(project, "upload", error=None)
                 save_project(project)
                 return
@@ -114,18 +146,19 @@ def run(project_id: str) -> None:
             log.info(f"  Default language: {default_language}")
             log.info(f"  Tags: {', '.join(tags) if tags else 'None'}")
 
-            # Check thumbnail availability
-            thumbnail_path = None
-            thumbnail_exists = False
-            if project.render.thumbnail_path:
-                thumbnail_path = project_dir / project.render.thumbnail_path
-                thumbnail_exists = thumbnail_path.exists()
-                if thumbnail_exists:
-                    log.info(f"Thumbnail available: {thumbnail_path.resolve()}")
-                else:
-                    log.warning(f"Thumbnail file not found: {thumbnail_path}")
-            else:
-                log.info("No thumbnail path in render data")
+            # Hard gate: require a generated thumbnail before uploading
+            if not project.render.thumbnail_path:
+                raise RuntimeError(
+                    "Render step must generate a thumbnail before upload. "
+                    "No thumbnail path found in project.render."
+                )
+            thumbnail_path = project_dir / project.render.thumbnail_path
+            if not thumbnail_path.exists():
+                raise FileNotFoundError(
+                    f"Thumbnail file not found: {thumbnail_path}. "
+                    "Please re-run render to generate it."
+                )
+            log.info(f"Thumbnail available: {thumbnail_path.resolve()}")
 
             # Upload video
             log.info("Starting resumable upload...")
@@ -150,19 +183,11 @@ def run(project_id: str) -> None:
             video_id = response["id"]
             log.info(f"Video uploaded successfully! Video ID: {video_id}")
 
-            # Upload thumbnail if available
-            thumbnail_uploaded = False
-            if thumbnail_path and thumbnail_exists:
-                log.info(f"Uploading custom thumbnail: {thumbnail_path.resolve()}")
-                try:
-                    provider.upload_thumbnail(video_id, thumbnail_path)
-                    thumbnail_uploaded = True
-                    log.info("Thumbnail uploaded successfully")
-                except Exception as e:
-                    log.warning(f"Failed to upload thumbnail: {e}")
-                    if hasattr(e, "content"):
-                        log.warning(f"Raw error content: {e.content}")
-                    log.info("Continuing without custom thumbnail...")
+            # Upload thumbnail (required)
+            log.info(f"Uploading custom thumbnail: {thumbnail_path.resolve()}")
+            provider.upload_thumbnail(video_id, thumbnail_path)
+            thumbnail_uploaded = True
+            log.info("Thumbnail uploaded successfully")
 
             # Persist YouTube data to project.json
             project.youtube = YouTubeData(
