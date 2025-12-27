@@ -63,6 +63,9 @@ class UploadConfig(BaseModel):
     """Upload settings."""
 
     privacy: PrivacyType = "unlisted"
+    category_id: str = "10"  # YouTube category ID (10 = Music)
+    made_for_kids: bool = False
+    default_language: str = "en"
 
 
 class FunnelConfig(BaseModel):
@@ -166,6 +169,8 @@ class YouTubeData(BaseModel):
     uploaded_at: Optional[str] = None
     privacy: Optional[PrivacyType] = None
     title: Optional[str] = None
+    thumbnail_uploaded: bool = False
+    thumbnail_path: Optional[str] = None
 
 
 class Project(BaseModel):

@@ -73,7 +73,7 @@ def create_project(
         # Channel default takes precedence
         vocals_enabled = not channel.prompt_constraints.default_instrumental
 
-    project = Project(
+        project = Project(
         project_id=project_id,
         created_at=datetime.now().isoformat(),
         theme=theme,
@@ -84,7 +84,12 @@ def create_project(
         vocals=VocalsConfig(enabled=vocals_enabled),
         lyrics=LyricsConfig(enabled=lyrics_enabled, source="gemini"),
         video=VideoConfig(width=1920, height=1080, fps=30),
-        upload=UploadConfig(privacy=channel.upload_defaults.privacy),
+        upload=UploadConfig(
+            privacy=channel.upload_defaults.privacy,
+            category_id=channel.upload_defaults.category_id,
+            made_for_kids=channel.upload_defaults.made_for_kids,
+            default_language=channel.upload_defaults.default_language,
+        ),
         funnel=FunnelConfig(),
         status=ProjectStatus(current_step="new", last_successful_step="new"),
     )

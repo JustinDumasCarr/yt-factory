@@ -52,11 +52,12 @@ Goal: go from theme to an Unlisted YouTube upload on macOS using CLI steps.
   - mux static image to MP4
   - generate chapters
   - generate description text
-- [ ] YouTube upload integration:
-  - OAuth token caching
-  - resumable upload
-  - apply metadata
-  - store video_id
+- [x] YouTube upload integration:
+  - [x] OAuth token caching
+  - [x] resumable upload
+  - [x] apply metadata (title/description/tags/privacy/category/language/made_for_kids)
+  - [x] auto thumbnail upload
+  - [x] store video_id and thumbnail status
 
 Exit criteria:
 - One command sequence produces:

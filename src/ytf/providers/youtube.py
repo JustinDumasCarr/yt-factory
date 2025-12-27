@@ -160,6 +160,8 @@ class YouTubeProvider:
         tags: list[str],
         privacy_status: str = "unlisted",
         category_id: str = "10",
+        made_for_kids: bool = False,
+        default_language: str = "en",
     ) -> dict:
         """
         Upload a video to YouTube using resumable upload protocol.
@@ -171,6 +173,8 @@ class YouTubeProvider:
             tags: List of tags
             privacy_status: Privacy status ("public", "private", "unlisted")
             category_id: YouTube category ID (default: "10" for Music)
+            made_for_kids: Whether video is made for kids (default: False)
+            default_language: Default language code (default: "en")
 
         Returns:
             Dictionary with video_id and other upload response data
@@ -191,9 +195,11 @@ class YouTubeProvider:
                 "description": description,
                 "tags": tags,
                 "categoryId": category_id,
+                "defaultLanguage": default_language,
             },
             "status": {
                 "privacyStatus": privacy_status,
+                "selfDeclaredMadeForKids": made_for_kids,
             },
         }
 

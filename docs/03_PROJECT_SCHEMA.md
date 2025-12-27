@@ -89,8 +89,15 @@ Render:
   - description_path
 
 Upload:
+- upload:
+  - privacy: "unlisted" | "private" | "public"
+  - category_id: string (default "10" for Music)
+  - made_for_kids: boolean
+  - default_language: string (default "en")
 - youtube:
   - video_id
   - uploaded_at
   - privacy
   - title
+  - thumbnail_uploaded: boolean
+  - thumbnail_path: string | null

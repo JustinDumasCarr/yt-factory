@@ -68,14 +68,18 @@ Legend:
   - Acceptance: creates `assets/thumbnail.png` with album title and theme text overlaid
 
 ### G . YouTube upload
-- [ ] Implement OAuth token caching
+- [x] Implement OAuth token caching
   - Acceptance: first run authenticates, subsequent runs reuse token
-- [ ] Implement resumable upload
+- [x] Implement resumable upload
   - Acceptance: uploads mp4 and returns a video id
-- [ ] Apply metadata (title/description/tags/privacy)
-  - Acceptance: uploaded video matches settings, default privacy is Unlisted
-- [ ] Persist YouTube results to project.json
-  - Acceptance: `youtube.video_id` is saved
+- [x] Apply metadata (title/description/tags/privacy/category/language/made_for_kids)
+  - Acceptance: uploaded video matches channel-driven settings
+- [x] Persist YouTube results to project.json
+  - Acceptance: `youtube.video_id`, `thumbnail_uploaded`, `thumbnail_path` are saved
+- [x] Auto thumbnail upload
+  - Acceptance: if thumbnail exists, automatically uploads and persists status
+- [x] Idempotent upload behavior
+  - Acceptance: re-running upload step skips if video_id already exists
 
 ---
 
