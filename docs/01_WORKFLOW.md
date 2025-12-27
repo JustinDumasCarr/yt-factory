@@ -177,4 +177,34 @@ Queue lifecycle:
 Features:
 - **Partial resume**: `generate` step skips completed tracks and retries only failed tracks under attempt cap
 - **Attempt caps**: Per-project and per-track attempt limits (default: 3 project attempts, 2 track attempts)
+- **Enhanced summaries**: Queue run summaries include aggregated error statistics (by type, provider, step), retry counts, and per-project log summaries
+
+### `ytf logs` (View logs and summaries)
+View project logs and error summaries:
+
+**View log entries:**
+```bash
+# View recent log entries (last 50 lines)
+ytf logs view <project_id>
+
+# View logs for specific step
+ytf logs view <project_id> --step plan
+
+# View only errors
+ytf logs view <project_id> --errors-only
+
+# View JSON logs (if YTF_JSON_LOGS=true)
+ytf logs view <project_id> --json
+```
+
+**View error summaries:**
+```bash
+# View summary for all steps
+ytf logs summary <project_id>
+
+# View summary for specific step
+ytf logs summary <project_id> --step generate
+```
+
+Summaries show error counts by type/provider, retry statistics, duration breakdown, and track failures.
 - **Idempotent**: Re-running `ytf queue run` after interruption resumes remaining items without redoing completed work

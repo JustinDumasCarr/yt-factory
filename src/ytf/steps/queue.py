@@ -13,9 +13,10 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from ytf.project import PROJECTS_DIR
+from ytf.project import PROJECTS_DIR, load_project
 from ytf.runner import run_project
 from ytf.steps import new
+from ytf.utils.log_summary import generate_summary
 
 # Queue directory structure
 QUEUE_DIR = Path(__file__).parent.parent.parent / "queue"
@@ -283,14 +284,69 @@ def run_queue(limit: Optional[int] = None) -> dict:
         log_file.write(f"Successful: {successful}\n")
         log_file.write(f"Failed: {failed}\n")
 
-    # Write summary JSON
+    # Aggregate error statistics across all projects
+    error_by_type = {}
+    error_by_provider = {}
+    error_by_step = {}
+    total_retries = 0
+    project_summaries = []
+    
+    for result in results:
+        if result["status"] == "failed" and result["project_id"]:
+            # Try to load log summaries for failed projects
+            try:
+                project = load_project(result["project_id"])
+                failed_step = result.get("failed_step") or project.status.current_step
+                
+                # Aggregate errors from last_error if available
+                if project.status.last_error:
+                    error_kind = project.status.last_error.kind or "unknown"
+                    error_provider = project.status.last_error.provider or "unknown"
+                    
+                    error_by_type[error_kind] = error_by_type.get(error_kind, 0) + 1
+                    error_by_provider[error_provider] = error_by_provider.get(error_provider, 0) + 1
+                    error_by_step[failed_step] = error_by_step.get(failed_step, 0) + 1
+                
+                # Try to load step summaries
+                step_summaries = {}
+                for step in ["plan", "generate", "review", "render", "upload"]:
+                    try:
+                        step_summary = generate_summary(result["project_id"], step)
+                        if step_summary.get("status") != "no_logs":
+                            step_summaries[step] = step_summary
+                            # Aggregate retries
+                            if "retries" in step_summary:
+                                total_retries += step_summary["retries"].get("total", 0)
+                    except Exception:
+                        pass
+                
+                if step_summaries:
+                    project_summaries.append({
+                        "project_id": result["project_id"],
+                        "step_summaries": step_summaries,
+                    })
+            except Exception:
+                # Skip if we can't load project
+                pass
+    
+    # Write enhanced summary JSON
     summary = {
         "run_id": run_id,
         "started_at": datetime.now().isoformat(),
         "processed": len(results),
         "successful": successful,
         "failed": failed,
+        "success_rate": successful / len(results) if results else 0.0,
+        "errors": {
+            "by_type": error_by_type,
+            "by_provider": error_by_provider,
+            "by_step": error_by_step,
+        },
+        "retries": {
+            "total": total_retries,
+        },
         "items": results,
+        "project_summaries": project_summaries[:10],  # Limit to first 10 to avoid huge files
     }
 
     with open(run_summary_path, "w", encoding="utf-8") as f:

@@ -31,6 +31,7 @@ import typer
 
 from ytf import doctor
 from ytf import runner
+from ytf.cli_logs import logs_app
 from ytf.steps import generate, new, plan, queue, render, review, upload
 
 app = typer.Typer(help="yt-factory: Local-first automation pipeline for music compilations")
@@ -166,6 +167,33 @@ def queue_cmd(
     else:
         typer.echo(f"Error: Unknown action '{action}'. Use 'add', 'ls', or 'run'", err=True)
         raise typer.Exit(1)
+
+@app.command(name="logs")
+def logs_cmd(
+    project_id: str = typer.Argument(None, help="Project ID"),
+    action: str = typer.Argument("view", help="Action: 'view' or 'summary'"),
+    step: str = typer.Option(None, "--step", "-s", help="Filter to specific step"),
+    json_logs: bool = typer.Option(False, "--json", help="Parse and display JSON logs"),
+    errors_only: bool = typer.Option(False, "--errors-only", help="Show only ERROR level entries"),
+    lines: int = typer.Option(50, "--lines", "-n", help="Number of lines to show (default: 50)"),
+) -> None:
+    """View project logs and summaries."""
+    if action == "view":
+        if not project_id:
+            typer.echo("Error: project_id is required for 'view' action", err=True)
+            raise typer.Exit(1)
+        from ytf.cli_logs import logs_view_cmd
+        logs_view_cmd(project_id, step, json_logs, errors_only, lines)
+    elif action == "summary":
+        if not project_id:
+            typer.echo("Error: project_id is required for 'summary' action", err=True)
+            raise typer.Exit(1)
+        from ytf.cli_logs import logs_summary_cmd
+        logs_summary_cmd(project_id, step)
+    else:
+        typer.echo(f"Error: Unknown action '{action}'. Use 'view' or 'summary'", err=True)
+        raise typer.Exit(1)
+
 
 def main() -> None:
     """Main entry point for the CLI."""

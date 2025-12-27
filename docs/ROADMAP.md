@@ -88,9 +88,11 @@ Goal: stop babysitting the pipeline.
   - [x] `ytf batch` command with batch summary output
   - [x] retry logic for transient errors in batch context
   - [x] Queue-based batch v2: file-based queue, attempt caps, partial resume
-- [ ] Improved logs:
-  - structured JSON logs optional
-  - clear error summaries
+- [x] Improved logs:
+  - [x] structured JSON logs optional (enabled via YTF_JSON_LOGS=true)
+  - [x] clear error summaries (auto-generated after each step)
+  - [x] `ytf logs` command for viewing logs and summaries
+  - [x] enhanced queue run summaries with aggregated error statistics
 
 Exit criteria:
 - Can run overnight batches and wake up to finished renders/uploads.
