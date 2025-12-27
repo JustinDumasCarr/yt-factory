@@ -56,6 +56,25 @@ Prevention:
 - Implement retry with exponential backoff for 429/5xx.
 - Prefer batching: generate all prompts in one call if feasible.
 
+### 2b) Gemini Image Generation Quota (Render Step)
+Symptoms:
+- 429 RESOURCE_EXHAUSTED errors when generating background images
+- Error mentions "free_tier_requests, limit: 0" for `gemini-2.5-flash-image` model
+- Background falls back to default black image
+
+Root cause:
+- The free tier Gemini API plan does NOT include access to image generation models
+- Image generation requires a paid Gemini API plan
+
+Recovery:
+- Upgrade your Gemini API plan at: https://ai.google.dev/pricing
+- Or manually provide `assets/background.png` for each project
+- The render step will use the existing background image if present
+
+Prevention:
+- Upgrade to a paid Gemini API plan before using background image generation
+- Check your quota at: https://ai.dev/usage?tab=rate-limit
+
 ### 3) Low-quality or off-theme prompts
 Symptoms:
 - Prompts drift from theme or violate constraints.

@@ -8,9 +8,11 @@ Rendering happens locally.
 
 ## Background Image Generation
 - If `assets/background.png` doesn't exist, generates using Gemini 2.5 Flash Image API
+- **IMPORTANT**: Requires a PAID Gemini API plan. The free tier does not include access to `gemini-2.5-flash-image` model.
+- Upgrade your plan at: https://ai.google.dev/pricing
 - Prompt based on project theme for scenic, atmospheric backgrounds
 - Aspect ratio: 16:9 (1920x1080)
-- Falls back to default black background if Gemini generation fails
+- Falls back to default black background if Gemini generation fails (e.g., rate limits, quota exceeded)
 
 ## Thumbnail Creation
 - Creates `assets/thumbnail.png` with text overlay
