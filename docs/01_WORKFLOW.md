@@ -137,3 +137,32 @@ Batch summary includes:
 - Total projects, successful/failed counts
 - Per-project: project_id, last_successful_step, failed_step, error_message, youtube_video_id
 - Start/end timestamps
+
+### `ytf queue` (Queue-based batch processing v2)
+File-based queue system for reliable overnight runs:
+
+**Add items to queue:**
+```bash
+ytf queue add --channel cafe_jazz --mode full --theme "Night Jazz" --count 3
+```
+
+**List queue status:**
+```bash
+ytf queue ls
+```
+
+**Process queue:**
+```bash
+ytf queue run [--limit N]  # Process all pending items, or limit to N
+```
+
+Queue lifecycle:
+- Items start in `queue/pending/`
+- Move to `queue/in_progress/` during processing
+- Move to `queue/done/` on success or `queue/failed/` on failure
+- Each run creates `queue/runs/<run_id>.json` and `queue/runs/<run_id>.log`
+
+Features:
+- **Partial resume**: `generate` step skips completed tracks and retries only failed tracks under attempt cap
+- **Attempt caps**: Per-project and per-track attempt limits (default: 3 project attempts, 2 track attempts)
+- **Idempotent**: Re-running `ytf queue run` after interruption resumes remaining items without redoing completed work

@@ -31,7 +31,7 @@ import typer
 
 from ytf import doctor
 from ytf import runner
-from ytf.steps import generate, new, plan, render, review, upload
+from ytf.steps import generate, new, plan, queue, render, review, upload
 
 app = typer.Typer(help="yt-factory: Local-first automation pipeline for music compilations")
 
@@ -124,6 +124,48 @@ def batch_cmd(
     typer.echo(f"Successful: {summary['successful']}/{summary['total_projects']}")
     typer.echo(f"Failed: {summary['failed']}/{summary['total_projects']}")
     typer.echo(f"Summary saved to: projects/{summary['batch_id']}_summary.json")
+
+
+@app.command(name="queue")
+def queue_cmd(
+    action: str = typer.Argument(..., help="Action: add, ls, or run"),
+    channel: str = typer.Option(None, "--channel", "-c", help="Channel ID (required for 'add')"),
+    theme: str = typer.Option(None, "--theme", "-t", help="Theme (required for 'add')"),
+    mode: str = typer.Option("full", "--mode", "-m", help="Target mode (required for 'add')"),
+    count: int = typer.Option(1, "--count", "-n", help="Number of items to add (for 'add')"),
+    limit: int = typer.Option(None, "--limit", "-l", help="Max items to process (for 'run')"),
+) -> None:
+    """Queue-based batch processing."""
+    if action == "add":
+        if not channel or not theme:
+            typer.echo("Error: --channel and --theme are required for 'add'", err=True)
+            raise typer.Exit(1)
+        created = queue.add_queue_item(
+            channel_id=channel,
+            theme=theme,
+            mode=mode,
+            count=count,
+        )
+        typer.echo(f"Added {len(created)} item(s) to queue")
+        for filename in created:
+            typer.echo(f"  - {filename}")
+    elif action == "ls":
+        status = queue.list_queue()
+        typer.echo("Queue status:")
+        typer.echo(f"  Pending: {status['pending']}")
+        typer.echo(f"  In progress: {status['in_progress']}")
+        typer.echo(f"  Done: {status['done']}")
+        typer.echo(f"  Failed: {status['failed']}")
+    elif action == "run":
+        summary = queue.run_queue(limit=limit)
+        typer.echo(f"Queue run completed: {summary['run_id']}")
+        typer.echo(f"Processed: {summary['processed']}")
+        typer.echo(f"Successful: {summary['successful']}")
+        typer.echo(f"Failed: {summary['failed']}")
+        typer.echo(f"Summary saved to: queue/runs/{summary['run_id']}.json")
+    else:
+        typer.echo(f"Error: Unknown action '{action}'. Use 'add', 'ls', or 'run'", err=True)
+        raise typer.Exit(1)
 
 def main() -> None:
     """Main entry point for the CLI."""

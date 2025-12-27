@@ -111,6 +111,13 @@ Legend:
 - [x] `ytf batch` command
   - Creates N projects and runs them sequentially
   - Acceptance: generates batch_summary.json with per-project outcomes, never hides failures
+- [x] Queue-based batch processing v2:
+  - [x] `ytf queue add/ls/run` commands
+  - [x] File-based queue with pending/in_progress/done/failed lifecycle
+  - [x] Per-project and per-track attempt caps in project.json schema
+  - [x] Partial resume for generate step (skips completed tracks, retries failed under cap)
+  - [x] Queue run summaries (JSON + log per run)
+  - Acceptance: `ytf queue run` processes items sequentially, resumes after interruption, respects attempt caps
 
 ---
 

@@ -65,6 +65,9 @@ def run(project_id: str) -> None:
             # Track existing tracks by index for resume logic
             existing_tracks = {t.track_index: t for t in project.tracks}
 
+            # Get max track attempts (default: 2, can be overridden via project metadata)
+            max_track_attempts = 2  # Default, can be passed from queue item in future
+
             # Process each prompt
             successful = 0
             failed = 0
@@ -84,17 +87,39 @@ def run(project_id: str) -> None:
                             successful += 1
                             continue
 
+                    # Check attempt cap for failed tracks
+                    if existing and existing.status == "failed" and existing.error:
+                        attempt_count = existing.error.attempt_count
+                        if attempt_count >= max_track_attempts:
+                            log.warning(
+                                f"Track {track_index} has exceeded max attempts ({attempt_count}/{max_track_attempts}), skipping"
+                            )
+                            failed += 1
+                            continue
+                        else:
+                            log.info(
+                                f"Retrying track {track_index} (attempt {attempt_count + 1}/{max_track_attempts})"
+                            )
+
                     log.info(
                         f"Processing track {track_index}: {prompt.title} ({prompt.style})"
                     )
 
                     # Resume logic: if we have a job_id but no audio, try polling first
+                    # Also check if we have audio_url for resume
                     task_id = None
                     if existing and existing.job_id:
                         task_id = existing.job_id
                         log.info(
                             f"Resuming track {track_index} with existing job_id: {task_id}"
                         )
+                    elif existing and existing.audio_url:
+                        # If we have audio_url but no file, try downloading directly
+                        log.info(
+                            f"Resuming track {track_index} with existing audio_url: {existing.audio_url}"
+                        )
+                        # We'll handle download below, but skip job submission
+                        task_id = existing.job_id  # Use existing job_id if available
                     else:
                         # Submit generation job
                         log.info(f"Submitting generation job for track {track_index}")
@@ -128,16 +153,25 @@ def run(project_id: str) -> None:
                         )
                         log.error(f"Raw response: {status_info.get('raw', 'N/A')}")
 
+                        # Increment attempt count
+                        attempt_count = 0
+                        if existing and existing.error:
+                            attempt_count = existing.error.attempt_count + 1
+                        else:
+                            attempt_count = 1
+
                         # Create failed track entry
                         track = Track(
                             track_index=track_index,
                             prompt=prompt.prompt,
                             provider="suno",
                             job_id=task_id,
+                            audio_url=existing.audio_url if existing else None,
                             status="failed",
                             error=TrackError(
                                 message=error_msg,
                                 raw=status_info.get("raw"),
+                                attempt_count=attempt_count,
                             ),
                         )
 
@@ -167,15 +201,24 @@ def run(project_id: str) -> None:
                         error_msg = "No tracks returned from Suno"
                         log.error(f"Track {track_index}: {error_msg}")
 
+                        # Increment attempt count
+                        attempt_count = 0
+                        if existing and existing.error:
+                            attempt_count = existing.error.attempt_count + 1
+                        else:
+                            attempt_count = 1
+
                         track = Track(
                             track_index=track_index,
                             prompt=prompt.prompt,
                             provider="suno",
                             job_id=task_id,
+                            audio_url=existing.audio_url if existing else None,
                             status="failed",
                             error=TrackError(
                                 message=error_msg,
                                 raw=status_info.get("raw"),
+                                attempt_count=attempt_count,
                             ),
                         )
 
@@ -205,15 +248,24 @@ def run(project_id: str) -> None:
                         error_msg = "No audioUrl in track data"
                         log.error(f"Track {track_index}: {error_msg}")
 
+                        # Increment attempt count
+                        attempt_count = 0
+                        if existing and existing.error:
+                            attempt_count = existing.error.attempt_count + 1
+                        else:
+                            attempt_count = 1
+
                         track = Track(
                             track_index=track_index,
                             prompt=prompt.prompt,
                             provider="suno",
                             job_id=task_id,
+                            audio_url=existing.audio_url if existing else None,
                             status="failed",
                             error=TrackError(
                                 message=error_msg,
                                 raw=json.dumps(track_data),
+                                attempt_count=attempt_count,
                             ),
                         )
 
@@ -319,6 +371,7 @@ def run(project_id: str) -> None:
                         prompt=prompt.prompt,
                         provider="suno",
                         job_id=task_id,
+                        audio_url=audio_url,  # Persist for resume
                         audio_path=str(relative_audio_path),
                         duration_seconds=duration,
                         status="ok",

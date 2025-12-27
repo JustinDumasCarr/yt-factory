@@ -39,6 +39,7 @@ class ProjectStatus(BaseModel):
     current_step: StepType = "new"
     last_successful_step: Optional[StepType] = None
     last_error: Optional[LastError] = None
+    attempts: dict[str, int] = Field(default_factory=dict)  # Step -> attempt count
 
 
 class VocalsConfig(BaseModel):
@@ -138,6 +139,7 @@ class TrackError(BaseModel):
 
     message: str
     raw: Optional[str] = None
+    attempt_count: int = 0  # Number of attempts made for this track
 
 
 class Track(BaseModel):
@@ -147,6 +149,7 @@ class Track(BaseModel):
     prompt: str
     provider: str = "suno"
     job_id: Optional[str] = None
+    audio_url: Optional[str] = None  # Last known audio URL for resume
     audio_path: Optional[str] = None
     duration_seconds: float = 0.0
     status: TrackStatusType = "ok"

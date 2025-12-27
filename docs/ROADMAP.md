@@ -87,6 +87,7 @@ Goal: stop babysitting the pipeline.
   - [x] `ytf run` command for single-project pipeline execution
   - [x] `ytf batch` command with batch summary output
   - [x] retry logic for transient errors in batch context
+  - [x] Queue-based batch v2: file-based queue, attempt caps, partial resume
 - [ ] Improved logs:
   - structured JSON logs optional
   - clear error summaries
