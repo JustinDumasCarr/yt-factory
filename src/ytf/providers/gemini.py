@@ -273,3 +273,65 @@ Make sure the JSON is valid and parseable."""
         except Exception as e:
             raise RuntimeError(f"Gemini API error: {e}") from e
 
+    def generate_background_image(self, theme: str, output_path: str) -> None:
+        """
+        Generate a background image using Gemini 2.5 Flash Image API.
+
+        Args:
+            theme: Project theme to generate image for
+            output_path: Path where to save the generated image
+
+        Raises:
+            Exception: If API call fails or image cannot be saved
+        """
+        from pathlib import Path
+        from google.genai import types
+
+        # Create prompt for scenic background image
+        prompt = (
+            f"A beautiful, cinematic background scene matching the theme: {theme}. "
+            f"Scenic and atmospheric, detailed background scenery, "
+            f"cinematic composition, 16:9 aspect ratio, high quality, "
+            f"perfect for a music video background. No text, no people in foreground, "
+            f"focus on the environment and atmosphere."
+        )
+
+        try:
+            # Generate image using gemini-2.5-flash-image model
+            response = self.client.models.generate_content(
+                model="gemini-2.5-flash-image",
+                contents=[prompt],
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE"],
+                    image_config=types.ImageConfig(
+                        aspect_ratio="16:9",
+                    )
+                ),
+            )
+
+            # Extract image from response
+            image_saved = False
+            for part in response.parts:
+                if part.text is not None:
+                    # Log any text response (descriptions, etc.)
+                    log_text = str(part.text)[:200]  # First 200 chars
+                    if log_text:
+                        pass  # Could log this if needed
+                elif part.inline_data is not None:
+                    # Save image
+                    image = part.as_image()
+                    output_file = Path(output_path)
+                    output_file.parent.mkdir(parents=True, exist_ok=True)
+                    image.save(str(output_file))
+                    image_saved = True
+                    break
+
+            if not image_saved:
+                raise RuntimeError("No image data found in Gemini response")
+
+            if not Path(output_path).exists():
+                raise RuntimeError(f"Image was not saved to {output_path}")
+
+        except Exception as e:
+            raise RuntimeError(f"Gemini API error generating background image: {e}") from e
+

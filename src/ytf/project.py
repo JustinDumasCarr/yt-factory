@@ -116,6 +116,7 @@ class RenderData(BaseModel):
     """Render output data."""
 
     background_path: Optional[str] = None
+    thumbnail_path: Optional[str] = None
     selected_track_indices: list[int] = Field(default_factory=list)
     output_mp4_path: Optional[str] = None
     chapters_path: Optional[str] = None

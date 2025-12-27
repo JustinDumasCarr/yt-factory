@@ -9,6 +9,7 @@ from pathlib import Path
 
 from ytf.logger import StepLogger
 from ytf.project import PROJECTS_DIR, RenderData, load_project, save_project, update_status
+from ytf.providers.gemini import GeminiProvider
 from ytf.utils import ffmpeg
 
 
@@ -101,15 +102,58 @@ def run(project_id: str) -> None:
             # Step 3: Handle background image
             background_path = assets_dir / "background.png"
             if not background_path.exists():
-                log.info("Background image not found, generating default...")
-                ffmpeg.generate_default_background(
-                    background_path,
+                log.info("Background image not found, generating with Gemini...")
+                try:
+                    # Try to generate using Gemini
+                    provider = GeminiProvider()
+                    provider.generate_background_image(
+                        theme=project.theme,
+                        output_path=str(background_path),
+                    )
+                    log.info(f"Generated background image using Gemini at {background_path}")
+                except Exception as e:
+                    # Fall back to default black background if Gemini fails
+                    log.warning(f"Failed to generate background with Gemini: {e}")
+                    log.info("Falling back to default black background...")
+                    ffmpeg.generate_default_background(
+                        background_path,
+                        width=project.video.width,
+                        height=project.video.height,
+                    )
+                    log.info(f"Generated default background at {background_path}")
+            else:
+                log.info(f"Using existing background image at {background_path}")
+
+            # Step 3.5: Create thumbnail with text overlay
+            log.info("Creating thumbnail with text overlay...")
+            thumbnail_path = assets_dir / "thumbnail.png"
+            
+            # Get album title and theme for text overlay
+            album_title = "Music Compilation"
+            if project.plan and project.plan.youtube_metadata:
+                album_title = project.plan.youtube_metadata.title
+            
+            # Use theme as subtitle/prompt
+            subtitle_text = project.theme
+            
+            thumbnail_created = False
+            try:
+                ffmpeg.overlay_text_on_image(
+                    image_path=background_path,
+                    output_path=thumbnail_path,
+                    title=album_title,
+                    subtitle=subtitle_text,
                     width=project.video.width,
                     height=project.video.height,
                 )
-                log.info(f"Generated default background at {background_path}")
-            else:
-                log.info(f"Using existing background image at {background_path}")
+                if thumbnail_path.exists():
+                    log.info(f"Thumbnail with text overlay saved to {thumbnail_path}")
+                    thumbnail_created = True
+                else:
+                    log.warning("Thumbnail file was not created")
+            except Exception as e:
+                log.warning(f"Failed to create thumbnail with text overlay: {e}")
+                log.info("Continuing without thumbnail...")
 
             # Step 4: Create video
             log.info("Creating video with static background...")
@@ -172,8 +216,13 @@ def run(project_id: str) -> None:
             log.info(f"YouTube description saved to {description_path}")
 
             # Step 7: Persist render data to project.json
+            thumbnail_path_str = None
+            if thumbnail_created and thumbnail_path.exists():
+                thumbnail_path_str = str(thumbnail_path.relative_to(project_dir))
+            
             project.render = RenderData(
                 background_path=str(background_path.relative_to(project_dir)),
+                thumbnail_path=thumbnail_path_str,
                 selected_track_indices=selected_indices,
                 output_mp4_path=str(final_video_path.relative_to(project_dir)),
                 chapters_path=str(chapters_path.relative_to(project_dir)),

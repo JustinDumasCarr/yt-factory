@@ -284,3 +284,146 @@ def create_video_from_image_and_audio(
     except Exception as e:
         raise RuntimeError(f"FFmpeg error creating video: {e}") from e
 
+
+def overlay_text_on_image(
+    image_path: Union[str, Path],
+    output_path: Union[str, Path],
+    title: str,
+    subtitle: str,
+    width: int = 1920,
+    height: int = 1080,
+) -> None:
+    """
+    Overlay text on an image using FFmpeg drawtext filter.
+
+    Args:
+        image_path: Path to input image
+        output_path: Path where to save the output image with text overlay
+        title: Main title text (displayed at top, larger)
+        subtitle: Subtitle text (displayed at bottom, smaller)
+        width: Image width in pixels (default 1920)
+        height: Image height in pixels (default 1080)
+
+    Raises:
+        RuntimeError: If FFmpeg fails to overlay text
+        FileNotFoundError: If input image doesn't exist
+    """
+    image_path = Path(image_path)
+    output_path = Path(output_path)
+
+    if not image_path.exists():
+        raise FileNotFoundError(f"Image file not found: {image_path}")
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Escape special characters for FFmpeg drawtext filter
+    def escape_text(text: str) -> str:
+        """Escape special characters for FFmpeg drawtext."""
+        # Escape backslashes, colons, and quotes
+        text = text.replace("\\", "\\\\")
+        text = text.replace(":", "\\:")
+        text = text.replace("'", "\\'")
+        text = text.replace('"', '\\"')
+        return text
+
+    title_escaped = escape_text(title)
+    subtitle_escaped = escape_text(subtitle)
+
+    # Calculate positions
+    # Title: centered horizontally, 20% from top
+    title_x = f"(w-text_w)/2"
+    title_y = f"h*0.2"
+    # Subtitle: centered horizontally, 20% from bottom
+    subtitle_x = f"(w-text_w)/2"
+    subtitle_y = f"h*0.8"
+
+    # Build drawtext filters
+    # Title: 60px font, white with black outline
+    title_filter = (
+        f"drawtext=text='{title_escaped}':"
+        f"fontsize=60:"
+        f"fontcolor=white:"
+        f"borderw=3:"
+        f"bordercolor=black:"
+        f"x={title_x}:"
+        f"y={title_y}:"
+        f"fontfile=/System/Library/Fonts/Helvetica.ttc"
+    )
+
+    # Subtitle: 40px font, white with black outline
+    subtitle_filter = (
+        f"drawtext=text='{subtitle_escaped}':"
+        f"fontsize=40:"
+        f"fontcolor=white:"
+        f"borderw=2:"
+        f"bordercolor=black:"
+        f"x={subtitle_x}:"
+        f"y={subtitle_y}:"
+        f"fontfile=/System/Library/Fonts/Helvetica.ttc"
+    )
+
+    # Combine filters
+    filter_complex = f"{title_filter},{subtitle_filter}"
+
+    try:
+        result = subprocess.run(
+            [
+                "ffmpeg",
+                "-i", str(image_path),
+                "-vf", filter_complex,
+                "-y",  # Overwrite if exists
+                str(output_path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,  # 1 minute max
+        )
+
+        if result.returncode != 0:
+            # Try with fallback font if Helvetica fails
+            title_filter_fallback = (
+                f"drawtext=text='{title_escaped}':"
+                f"fontsize=60:"
+                f"fontcolor=white:"
+                f"borderw=3:"
+                f"bordercolor=black:"
+                f"x={title_x}:"
+                f"y={title_y}"
+            )
+            subtitle_filter_fallback = (
+                f"drawtext=text='{subtitle_escaped}':"
+                f"fontsize=40:"
+                f"fontcolor=white:"
+                f"borderw=2:"
+                f"bordercolor=black:"
+                f"x={subtitle_x}:"
+                f"y={subtitle_y}"
+            )
+            filter_complex_fallback = f"{title_filter_fallback},{subtitle_filter_fallback}"
+
+            result = subprocess.run(
+                [
+                    "ffmpeg",
+                    "-i", str(image_path),
+                    "-vf", filter_complex_fallback,
+                    "-y",
+                    str(output_path),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+
+            if result.returncode != 0:
+                raise RuntimeError(
+                    f"FFmpeg failed to overlay text: {result.stderr or result.stdout}"
+                )
+
+        if not output_path.exists():
+            raise RuntimeError(f"Output image with text overlay was not created at {output_path}")
+
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("FFmpeg timed out while overlaying text") from None
+    except Exception as e:
+        raise RuntimeError(f"FFmpeg error overlaying text: {e}") from e
+
