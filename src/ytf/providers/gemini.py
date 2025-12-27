@@ -11,6 +11,9 @@ from typing import Any
 
 from dotenv import load_dotenv
 from google import genai
+from google.api_core import exceptions as google_exceptions
+
+from ytf.utils.retry import retry_call
 
 # Load environment variables from .env file
 load_dotenv()
@@ -74,9 +77,14 @@ Return JSON array: [{{"style": "...", "title": "...", "prompt": "..."}}, ...]
 Make sure the JSON is valid and parseable."""
 
         try:
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt,
+            # Wrap API call with retry logic
+            response = retry_call(
+                lambda: self.client.models.generate_content(
+                    model=self.model,
+                    contents=prompt,
+                ),
+                max_retries=3,
+                initial_delay=1.0,
             )
 
             # Extract text from response
@@ -132,8 +140,18 @@ Make sure the JSON is valid and parseable."""
 
         except json.JSONDecodeError as e:
             raise ValueError(f"Failed to parse JSON response: {e}\nResponse: {response_text}") from e
+        except google_exceptions.GoogleAPIError as e:
+            # Preserve raw error details
+            raw_error = f"Google API error: {str(e)}"
+            if hasattr(e, "status_code"):
+                raw_error = f"HTTP {e.status_code}: {raw_error}"
+            raise RuntimeError(f"Gemini API error: {e} | Raw: {raw_error}") from e
         except Exception as e:
-            raise RuntimeError(f"Gemini API error: {e}") from e
+            # Preserve raw error details
+            raw_error = str(e)
+            if hasattr(e, "response"):
+                raw_error = f"Response: {getattr(e.response, 'text', raw_error)}"
+            raise RuntimeError(f"Gemini API error: {e} | Raw: {raw_error}") from e
 
     def generate_lyrics(self, style: str, title: str, theme: str) -> str:
         """
@@ -168,9 +186,14 @@ Requirements:
 Return only the lyrics text, no explanations. Use [Verse], [Chorus] tags if needed."""
 
         try:
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt,
+            # Wrap API call with retry logic
+            response = retry_call(
+                lambda: self.client.models.generate_content(
+                    model=self.model,
+                    contents=prompt,
+                ),
+                max_retries=3,
+                initial_delay=1.0,
             )
 
             lyrics = response.text.strip()
@@ -188,8 +211,16 @@ Return only the lyrics text, no explanations. Use [Verse], [Chorus] tags if need
 
             return lyrics
 
+        except google_exceptions.GoogleAPIError as e:
+            raw_error = f"Google API error: {str(e)}"
+            if hasattr(e, "status_code"):
+                raw_error = f"HTTP {e.status_code}: {raw_error}"
+            raise RuntimeError(f"Gemini API error generating lyrics: {e} | Raw: {raw_error}") from e
         except Exception as e:
-            raise RuntimeError(f"Gemini API error generating lyrics: {e}") from e
+            raw_error = str(e)
+            if hasattr(e, "response"):
+                raw_error = f"Response: {getattr(e.response, 'text', raw_error)}"
+            raise RuntimeError(f"Gemini API error generating lyrics: {e} | Raw: {raw_error}") from e
 
     def generate_youtube_metadata(
         self, theme: str, track_count: int
@@ -221,9 +252,14 @@ Return JSON: {{"title": "...", "description": "...", "tags": [...]}}
 Make sure the JSON is valid and parseable."""
 
         try:
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt,
+            # Wrap API call with retry logic
+            response = retry_call(
+                lambda: self.client.models.generate_content(
+                    model=self.model,
+                    contents=prompt,
+                ),
+                max_retries=3,
+                initial_delay=1.0,
             )
 
             response_text = response.text.strip()
@@ -271,8 +307,16 @@ Make sure the JSON is valid and parseable."""
             raise ValueError(
                 f"Failed to parse JSON response: {e}\nResponse: {response_text}"
             ) from e
+        except google_exceptions.GoogleAPIError as e:
+            raw_error = f"Google API error: {str(e)}"
+            if hasattr(e, "status_code"):
+                raw_error = f"HTTP {e.status_code}: {raw_error}"
+            raise RuntimeError(f"Gemini API error: {e} | Raw: {raw_error}") from e
         except Exception as e:
-            raise RuntimeError(f"Gemini API error: {e}") from e
+            raw_error = str(e)
+            if hasattr(e, "response"):
+                raw_error = f"Response: {getattr(e.response, 'text', raw_error)}"
+            raise RuntimeError(f"Gemini API error: {e} | Raw: {raw_error}") from e
 
     def generate_background_image(self, theme: str, output_path: str) -> None:
         """
@@ -298,16 +342,20 @@ Make sure the JSON is valid and parseable."""
         )
 
         try:
-            # Generate image using gemini-2.5-flash-image model
-            response = self.client.models.generate_content(
-                model="gemini-2.5-flash-image",
-                contents=[prompt],
-                config=types.GenerateContentConfig(
-                    response_modalities=["IMAGE"],
-                    image_config=types.ImageConfig(
-                        aspect_ratio="16:9",
-                    )
+            # Generate image using gemini-2.5-flash-image model with retry
+            response = retry_call(
+                lambda: self.client.models.generate_content(
+                    model="gemini-2.5-flash-image",
+                    contents=[prompt],
+                    config=types.GenerateContentConfig(
+                        response_modalities=["IMAGE"],
+                        image_config=types.ImageConfig(
+                            aspect_ratio="16:9",
+                        )
+                    ),
                 ),
+                max_retries=3,
+                initial_delay=1.0,
             )
 
             # Extract image from response
@@ -333,6 +381,14 @@ Make sure the JSON is valid and parseable."""
             if not Path(output_path).exists():
                 raise RuntimeError(f"Image was not saved to {output_path}")
 
+        except google_exceptions.GoogleAPIError as e:
+            raw_error = f"Google API error: {str(e)}"
+            if hasattr(e, "status_code"):
+                raw_error = f"HTTP {e.status_code}: {raw_error}"
+            raise RuntimeError(f"Gemini API error generating background image: {e} | Raw: {raw_error}") from e
         except Exception as e:
-            raise RuntimeError(f"Gemini API error generating background image: {e}") from e
+            raw_error = str(e)
+            if hasattr(e, "response"):
+                raw_error = f"Response: {getattr(e.response, 'text', raw_error)}"
+            raise RuntimeError(f"Gemini API error generating background image: {e} | Raw: {raw_error}") from e
 

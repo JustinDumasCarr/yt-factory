@@ -41,16 +41,14 @@ def run(project_id: str) -> None:
 
             # Check if already uploaded (idempotent behavior: skip if video_id exists)
             if project.youtube and project.youtube.video_id:
-                error_msg = (
+                log.info(
                     f"Video already uploaded. Video ID: {project.youtube.video_id}. "
                     f"URL: https://www.youtube.com/watch?v={project.youtube.video_id}. "
-                    "To re-upload, clear project.json.youtube.video_id first."
+                    "Skipping upload step."
                 )
-                log.warning(error_msg)
-                # Store message in last_error but don't raise (idempotent skip)
-                update_status(project, "upload", error=RuntimeError(error_msg))
+                # Idempotent skip: update status to success and return
+                update_status(project, "upload", error=None)
                 save_project(project)
-                log.info("Skipping upload (already completed)")
                 return
 
             # Validate prerequisites

@@ -27,7 +27,7 @@ load_dotenv()
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 # Retriable HTTP status codes for exponential backoff
-RETRIABLE_STATUS_CODES = [500, 502, 503, 504]
+RETRIABLE_STATUS_CODES = [429, 500, 502, 503, 504]
 
 # Maximum number of retries
 MAX_RETRIES = 10
@@ -257,13 +257,20 @@ class YouTubeProvider:
                         )
             except HttpError as e:
                 if e.resp.status in RETRIABLE_STATUS_CODES:
-                    error = f"A retriable HTTP error {e.resp.status} occurred: {e.content}"
+                    # Include raw error content in error message
+                    raw_content = str(e.content)[:500] if e.content else "No content"
+                    error = f"A retriable HTTP error {e.resp.status} occurred: {raw_content}"
                 else:
+                    # Non-retriable: include raw content in raised error
+                    raw_content = str(e.content)[:500] if e.content else "No content"
                     raise RuntimeError(
-                        f"Non-retriable HTTP error {e.resp.status} occurred: {e.content}"
+                        f"Non-retriable HTTP error {e.resp.status} occurred | Raw: {raw_content}"
                     ) from e
             except Exception as e:
-                error = f"An unexpected error occurred: {e}"
+                raw_error = str(e)
+                if hasattr(e, "response") and hasattr(e.response, "text"):
+                    raw_error = f"Response: {e.response.text[:500]}"
+                error = f"An unexpected error occurred: {e} | Raw: {raw_error}"
 
             if error is not None:
                 if retry >= MAX_RETRIES:
@@ -300,9 +307,13 @@ class YouTubeProvider:
                 media_body=MediaFileUpload(str(thumbnail_path)),
             ).execute()
         except HttpError as e:
+            raw_content = str(e.content)[:500] if e.content else "No content"
             raise RuntimeError(
-                f"Failed to upload thumbnail: HTTP {e.resp.status}: {e.content}"
+                f"Failed to upload thumbnail: HTTP {e.resp.status} | Raw: {raw_content}"
             ) from e
         except Exception as e:
-            raise RuntimeError(f"Failed to upload thumbnail: {e}") from e
+            raw_error = str(e)
+            if hasattr(e, "response") and hasattr(e.response, "text"):
+                raw_error = f"Response: {e.response.text[:500]}"
+            raise RuntimeError(f"Failed to upload thumbnail: {e} | Raw: {raw_error}") from e
 

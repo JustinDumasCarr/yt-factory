@@ -13,6 +13,7 @@ from typing import Any, Optional
 import httpx
 
 from dotenv import load_dotenv
+from ytf.utils.retry import retry_call
 
 # Load environment variables from .env file
 load_dotenv()
@@ -88,30 +89,41 @@ class SunoProvider:
         # If instrumental=true, prompt is not used (per Suno docs)
 
         try:
-            response = self.client.post("/api/v1/generate", json=payload)
+            # Wrap API call with retry logic
+            response = retry_call(
+                lambda: self.client.post("/api/v1/generate", json=payload),
+                max_retries=3,
+                initial_delay=1.0,
+            )
             response.raise_for_status()
 
             data = response.json()
 
             if data.get("code") != 200:
+                raw_error = json.dumps(data, indent=2)
                 raise RuntimeError(
-                    f"Suno API error: code={data.get('code')}, msg={data.get('msg')}"
+                    f"Suno API error: code={data.get('code')}, msg={data.get('msg')} | Raw: {raw_error}"
                 )
 
             task_id = data.get("data", {}).get("taskId")
             if not task_id:
+                raw_error = json.dumps(data, indent=2)
                 raise RuntimeError(
-                    f"Suno API response missing taskId: {json.dumps(data)}"
+                    f"Suno API response missing taskId | Raw: {raw_error}"
                 )
 
             return task_id
 
         except httpx.HTTPStatusError as e:
+            raw_error = f"HTTP {e.response.status_code}: {e.response.text[:500]}"
             raise RuntimeError(
-                f"Suno API HTTP error: {e.response.status_code} - {e.response.text}"
+                f"Suno API HTTP error: {e.response.status_code} - {e.response.text} | Raw: {raw_error}"
             ) from e
         except Exception as e:
-            raise RuntimeError(f"Suno API error: {e}") from e
+            raw_error = str(e)
+            if hasattr(e, "response") and hasattr(e.response, "text"):
+                raw_error = f"Response: {e.response.text[:500]}"
+            raise RuntimeError(f"Suno API error: {e} | Raw: {raw_error}") from e
 
     def get_generation_status(self, task_id: str) -> dict[str, Any]:
         """
@@ -130,8 +142,13 @@ class SunoProvider:
             RuntimeError: If API call fails
         """
         try:
-            response = self.client.get(
-                "/api/v1/generate/record-info", params={"taskId": task_id}
+            # Wrap API call with retry logic
+            response = retry_call(
+                lambda: self.client.get(
+                    "/api/v1/generate/record-info", params={"taskId": task_id}
+                ),
+                max_retries=3,
+                initial_delay=1.0,
             )
             response.raise_for_status()
 
@@ -205,11 +222,15 @@ class SunoProvider:
             }
 
         except httpx.HTTPStatusError as e:
+            raw_error = f"HTTP {e.response.status_code}: {e.response.text[:500]}"
             raise RuntimeError(
-                f"Suno API HTTP error: {e.response.status_code} - {e.response.text}"
+                f"Suno API HTTP error: {e.response.status_code} - {e.response.text} | Raw: {raw_error}"
             ) from e
         except Exception as e:
-            raise RuntimeError(f"Suno API error: {e}") from e
+            raw_error = str(e)
+            if hasattr(e, "response") and hasattr(e.response, "text"):
+                raw_error = f"Response: {e.response.text[:500]}"
+            raise RuntimeError(f"Suno API error: {e} | Raw: {raw_error}") from e
 
     def poll_until_complete(
         self, task_id: str, max_wait_minutes: int = 20, initial_delay: int = 5
@@ -264,7 +285,12 @@ class SunoProvider:
             RuntimeError: If download fails
         """
         try:
-            response = self.client.get(audio_url, follow_redirects=True)
+            # Wrap download with retry logic
+            response = retry_call(
+                lambda: self.client.get(audio_url, follow_redirects=True),
+                max_retries=3,
+                initial_delay=1.0,
+            )
             response.raise_for_status()
 
             # Ensure output directory exists
@@ -278,11 +304,15 @@ class SunoProvider:
                 f.write(response.content)
 
         except httpx.HTTPStatusError as e:
+            raw_error = f"HTTP {e.response.status_code}: {e.response.text[:500]}"
             raise RuntimeError(
-                f"Download HTTP error: {e.response.status_code} - {e.response.text}"
+                f"Download HTTP error: {e.response.status_code} - {e.response.text} | Raw: {raw_error}"
             ) from e
         except Exception as e:
-            raise RuntimeError(f"Download error: {e}") from e
+            raw_error = str(e)
+            if hasattr(e, "response") and hasattr(e.response, "text"):
+                raw_error = f"Response: {e.response.text[:500]}"
+            raise RuntimeError(f"Download error: {e} | Raw: {raw_error}") from e
 
     def close(self):
         """Close HTTP client explicitly."""

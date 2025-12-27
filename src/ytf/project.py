@@ -28,6 +28,9 @@ class LastError(BaseModel):
     message: str
     stack: str
     at: str  # ISO timestamp
+    kind: Optional[str] = None  # Error category: auth, rate_limit, timeout, provider_http, validation, ffmpeg, unknown
+    provider: Optional[str] = None  # Provider name: gemini, suno, youtube
+    raw: Optional[str] = None  # Raw error details (truncated if huge)
 
 
 class ProjectStatus(BaseModel):
@@ -316,6 +319,82 @@ def save_project(project: Project) -> None:
         f.write("\n")
 
 
+def _classify_error(error: Exception) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    """
+    Classify error to extract kind, provider, and raw details.
+
+    Args:
+        error: Exception to classify
+
+    Returns:
+        Tuple of (kind, provider, raw) where:
+        - kind: Error category (auth, rate_limit, timeout, provider_http, validation, ffmpeg, unknown)
+        - provider: Provider name (gemini, suno, youtube) or None
+        - raw: Raw error details (truncated) or None
+    """
+    kind = None
+    provider = None
+    raw = None
+
+    error_str = str(error).lower()
+    error_msg = str(error)
+
+    # Detect provider from error message or exception type
+    if "gemini" in error_str or "google.genai" in error_str or "genai" in error_str or "google.api_core" in error_str:
+        provider = "gemini"
+    elif "suno" in error_str or "sunoapi" in error_str or "api.sunoapi.org" in error_str:
+        provider = "suno"
+    elif "youtube" in error_str or "googleapiclient" in error_str or "youtube.upload" in error_str:
+        provider = "youtube"
+    elif "ffmpeg" in error_str or "ffprobe" in error_str:
+        provider = None  # FFmpeg is not a provider, but we'll mark kind as ffmpeg
+
+    # Classify error kind
+    if "401" in error_msg or "403" in error_msg or "unauthorized" in error_str or "forbidden" in error_str or "authentication" in error_str:
+        kind = "auth"
+    elif "429" in error_msg or "rate limit" in error_str or "quota exceeded" in error_str or "too many requests" in error_str:
+        kind = "rate_limit"
+    elif "timeout" in error_str or "timed out" in error_str:
+        kind = "timeout"
+    elif "ffmpeg" in error_str or "ffprobe" in error_str:
+        kind = "ffmpeg"
+    elif "validation" in error_str or "invalid" in error_str or "valueerror" in error_str.lower():
+        kind = "validation"
+    elif hasattr(error, "status_code") or hasattr(error, "resp") or "http" in error_str:
+        kind = "provider_http"
+    else:
+        kind = "unknown"
+
+    # Extract raw error details
+    raw_parts = []
+    
+    # Try to get HTTP response content (httpx)
+    if hasattr(error, "response") and hasattr(error.response, "text"):
+        status = getattr(error.response, "status_code", "?")
+        raw_parts.append(f"HTTP {status}: {error.response.text[:500]}")
+    # Try to get HTTP response content (googleapiclient)
+    elif hasattr(error, "resp") and hasattr(error.resp, "status"):
+        content = getattr(error, "content", None)
+        if content:
+            raw_parts.append(f"HTTP {error.resp.status}: {str(content)[:500]}")
+        else:
+            raw_parts.append(f"HTTP {error.resp.status}")
+    
+    # Try to get status code directly
+    if hasattr(error, "status_code") and not any("HTTP" in p for p in raw_parts):
+        raw_parts.append(f"Status: {error.status_code}")
+    
+    # Include full error message (truncated)
+    if error_msg:
+        raw_parts.append(error_msg[:1000])
+    
+    raw = " | ".join(raw_parts) if raw_parts else None
+    if raw and len(raw) > 2000:
+        raw = raw[:2000] + "... (truncated)"
+
+    return kind, provider, raw
+
+
 def update_status(
     project: Project, step: str, error: Optional[Exception] = None
 ) -> None:
@@ -336,11 +415,17 @@ def update_status(
         project.status.last_successful_step = step
         project.status.last_error = None
     else:
+        # Classify error
+        kind, provider, raw = _classify_error(error)
+        
         # Failure: persist error details
         project.status.last_error = LastError(
             step=step,
             message=str(error),
             stack=traceback.format_exc(),
             at=datetime.now().isoformat(),
+            kind=kind,
+            provider=provider,
+            raw=raw,
         )
 

@@ -8,6 +8,10 @@ Purpose:
 Core rule:
 - Never delete partial outputs on failure.
 - Always persist `project.json.status.last_error` and write the full traceback to the step log.
+- `last_error` now includes:
+  - `kind`: Error category (auth, rate_limit, timeout, provider_http, validation, ffmpeg, unknown)
+  - `provider`: Provider name (gemini, suno, youtube) or null
+  - `raw`: Raw error details from the provider (truncated if >2000 chars)
 
 ---
 
@@ -47,13 +51,16 @@ Prevention:
 ### 2) Rate limits / quota exceeded
 Symptoms:
 - 429 errors or "quota exceeded"
+- `project.json.status.last_error.kind` = "rate_limit"
 
 Recovery:
+- Automatic retries (up to 3 attempts) with exponential backoff are applied.
+- If all retries exhausted, check `last_error.raw` for details.
 - Wait briefly, then re-run `ytf plan <id>`
 - If persistent, reduce prompt count or consolidate requests.
 
 Prevention:
-- Implement retry with exponential backoff for 429/5xx.
+- Retry with exponential backoff (3 attempts) is now automatic for 429/5xx.
 - Prefer batching: generate all prompts in one call if feasible.
 
 ### 2b) Gemini Image Generation Quota (Render Step)
@@ -112,6 +119,8 @@ Prevention:
 ### 1) Auth / invalid API key
 Symptoms:
 - 401/403 in `logs/generate.log`
+- `project.json.status.last_error.kind` = "auth"
+- `project.json.status.last_error.provider` = "suno"
 
 Recovery:
 - Fix SUNO_API_KEY in `.env`
@@ -120,6 +129,7 @@ Recovery:
 Prevention:
 - `ytf doctor` should verify key presence.
 - Log which env var is missing, never log the key value.
+- Automatic retries are NOT applied for auth errors (fail fast).
 
 ### 2) Job stuck in processing
 Symptoms:
@@ -276,15 +286,20 @@ Prevention:
 - Always use resumable uploads.
 - Save upload session URI if the library exposes it.
 
-### 4) Quota exceeded
+### 4) Quota exceeded / rate limits
 Symptoms:
-- YouTube API returns quota errors.
+- YouTube API returns quota/rate limit errors (429).
+- `project.json.status.last_error.kind` = "rate_limit"
+- `project.json.status.last_error.provider` = "youtube"
 
 Recovery:
+- Automatic retries (up to 10 attempts) with exponential backoff are applied for resumable uploads.
+- If all retries exhausted, check `last_error.raw` for HTTP status and response details.
 - Wait until quota reset.
 - Re-run upload later.
 
 Prevention:
+- Retry logic now includes 429 as retriable.
 - Batch uploads intelligently.
 - Avoid unnecessary metadata updates that consume quota.
 
