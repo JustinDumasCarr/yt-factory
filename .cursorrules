@@ -35,3 +35,8 @@ Output requirements:
 Future proofing:
 - Use interfaces for LLMProvider, MusicProvider, UploadProvider, StorageAdapter.
 - StorageAdapter must default to local filesystem. S3 support is optional later.
+
+Sprint completion:
+- After completing each sprint, update docs/ROADMAP.md to mark completed milestones/items.
+- Update docs/TASKS.md to mark completed task items.
+- Keep roadmap and tasks in sync with actual implementation status.
