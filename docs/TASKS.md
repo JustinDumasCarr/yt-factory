@@ -46,11 +46,11 @@ Legend:
   - Acceptance: vocals OFF creates instrumental prompts; vocals ON creates prompt+lyrics pairs
 
 ### E . Suno provider
-- [ ] Implement Suno client wrapper using your API key
+- [x] Implement Suno client wrapper using your API key
   - Acceptance: can submit a generation job and get back a job id
-- [ ] Implement polling + download
+- [x] Implement polling + download
   - Acceptance: downloads audio to `tracks/` and records local path
-- [ ] Compute duration for downloaded tracks
+- [x] Compute duration for downloaded tracks
   - Acceptance: each track in project.json has `duration_seconds`
 
 ### F . Rendering (FFmpeg)

@@ -39,7 +39,7 @@ Goal: go from theme to an Unlisted YouTube upload on macOS using CLI steps.
   - generates prompts
   - generates optional lyrics when vocals enabled
   - generates YouTube metadata draft
-- [ ] Suno integration:
+- [x] Suno integration:
   - create job
   - poll
   - download audio
