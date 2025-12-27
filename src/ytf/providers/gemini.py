@@ -9,7 +9,11 @@ import json
 import os
 from typing import Any
 
+from dotenv import load_dotenv
 from google import genai
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class GeminiProvider:
