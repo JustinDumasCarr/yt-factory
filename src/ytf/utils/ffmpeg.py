@@ -396,6 +396,32 @@ def overlay_text_on_image(
     title_escaped = escape_text(title)
     channel_title_escaped = escape_text(channel_title)
 
+    # Calculate dynamic font sizes based on text length
+    # Leave margins: 100px on each side (200px total)
+    available_width = width - 200
+    
+    # Estimate character width: with letter spacing, each character is roughly 1.2x font size
+    # For title: start with 75px, scale down if needed
+    title_base_size = 75
+    title_char_count = len(title)
+    # Approximate: with spacing, width ≈ char_count * fontsize * 1.2
+    title_estimated_width = title_char_count * title_base_size * 1.2
+    if title_estimated_width > available_width:
+        title_font_size = int((available_width / title_char_count) / 1.2)
+        title_font_size = max(30, title_font_size)  # Minimum 30px
+    else:
+        title_font_size = title_base_size
+    
+    # For subtitle: start with 55px, scale down if needed
+    subtitle_base_size = 55
+    subtitle_char_count = len(channel_title)
+    subtitle_estimated_width = subtitle_char_count * subtitle_base_size * 1.2
+    if subtitle_estimated_width > available_width:
+        subtitle_font_size = int((available_width / subtitle_char_count) / 1.2)
+        subtitle_font_size = max(25, subtitle_font_size)  # Minimum 25px
+    else:
+        subtitle_font_size = subtitle_base_size
+
     # Calculate positions - centered horizontally
     # Main title at 66% down, subtitle at 78% down
     title_x = f"(w-text_w)/2"
@@ -408,12 +434,12 @@ def overlay_text_on_image(
     # Outline: borderw=2, bordercolor=black@0.25
     # Shadow: shadowx=2, shadowy=4, shadowcolor=black@0.6
     
-    # Main title: Cinzel Bold, larger font
+    # Main title: Cinzel Bold, dynamically sized font
     # Color format: 0xRRGGBB for FFmpeg
     title_font_file = f":fontfile={cinzel_bold}" if cinzel_bold else ""
     title_filter = (
         f"drawtext=text='{title_escaped}':"
-        f"fontsize=75:"
+        f"fontsize={title_font_size}:"
         f"fontcolor=0xF6F6F0:"
         f"borderw=2:"
         f"bordercolor=black@0.25:"
@@ -425,11 +451,11 @@ def overlay_text_on_image(
         f"{title_font_file}"
     )
 
-    # Subtitle: Cinzel Regular, smaller font
+    # Subtitle: Cinzel Regular, dynamically sized font
     subtitle_font_file = f":fontfile={cinzel_regular}" if cinzel_regular else ""
     subtitle_filter = (
         f"drawtext=text='{channel_title_escaped}':"
-        f"fontsize=55:"
+        f"fontsize={subtitle_font_size}:"
         f"fontcolor=0xF6F6F0:"
         f"borderw=2:"
         f"bordercolor=black@0.25:"
@@ -460,9 +486,10 @@ def overlay_text_on_image(
 
         if result.returncode != 0:
             # Try without font files if font specification fails
+            # Use the same dynamically calculated font sizes
             title_filter_fallback = (
                 f"drawtext=text='{title_escaped}':"
-                f"fontsize=75:"
+                f"fontsize={title_font_size}:"
                 f"fontcolor=0xF6F6F0:"
                 f"borderw=2:"
                 f"bordercolor=black@0.25:"
@@ -474,7 +501,7 @@ def overlay_text_on_image(
             )
             subtitle_filter_fallback = (
                 f"drawtext=text='{channel_title_escaped}':"
-                f"fontsize=55:"
+                f"fontsize={subtitle_font_size}:"
                 f"fontcolor=0xF6F6F0:"
                 f"borderw=2:"
                 f"bordercolor=black@0.25:"
