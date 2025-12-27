@@ -1,0 +1,76 @@
+channel_id: fantasy_reading
+name: Fantasy Reading
+intent: music_compilation
+
+duration_rules:
+  target_minutes: 120
+  min_minutes: 90
+  max_minutes: 180
+  track_count: 30
+  min_track_seconds: 60
+
+prompt_constraints:
+  default_instrumental: true
+  default_vocals: false
+  energy_level: low
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+  style_guidance: "Ambient, atmospheric fantasy music. Calm, contemplative, perfect for reading fantasy novels. Minimal, non-distracting."
+
+title_templates:
+  - template: "{theme} | Reading Music"
+    example: "Fantasy Reading Music | Reading Music"
+  - template: "{theme} - {track_count} Tracks"
+    example: "Epic Fantasy Ambience - 30 Tracks"
+  - template: "{theme} Compilation"
+    example: "Fantasy Reading Compilation"
+
+description_template:
+  template: |
+    {theme} - Ambient fantasy music perfect for reading, studying, or relaxation.
+
+    {chapters}
+
+    {cta}
+  cta_block: |
+    📚 Use these mixes inside Focus Sessions for immersive background music while reading.
+
+    Download the app: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}
+
+cta_variants:
+  - variant_id: app_reading
+    short_text: "📚 Use in Focus Sessions while reading"
+    long_text: "📚 Use these mixes inside Focus Sessions for immersive background music while reading. Download the app: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+  - variant_id: app_download
+    short_text: "Download Focus Sessions app"
+    long_text: "Download Focus Sessions to use these mixes as background music: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+
+tag_rules:
+  whitelist:
+    - fantasy music
+    - reading music
+    - ambient music
+    - fantasy ambience
+    - instrumental
+    - background music
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+    - health
+
+thumbnail_style:
+  font_family: Cinzel
+  layout_variant: big_title_small_subtitle
+  safe_words: []
+
+upload_defaults:
+  privacy: unlisted
+  category_id: "10"
+  default_language: en
+  made_for_kids: false
+

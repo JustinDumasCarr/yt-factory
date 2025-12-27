@@ -1,0 +1,76 @@
+channel_id: cafe_jazz
+name: Cafe Jazz
+intent: music_compilation
+
+duration_rules:
+  target_minutes: 120
+  min_minutes: 90
+  max_minutes: 240
+  track_count: 30
+  min_track_seconds: 60
+
+prompt_constraints:
+  default_instrumental: true
+  default_vocals: false
+  energy_level: low
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+  style_guidance: "Smooth jazz, cafe atmosphere. Relaxed, sophisticated, perfect for casual work or dining. Instrumental jazz with warm tones."
+
+title_templates:
+  - template: "{theme} | Cafe Jazz Music"
+    example: "Smooth Jazz Collection | Cafe Jazz Music"
+  - template: "{theme} - {track_count} Tracks"
+    example: "Cafe Jazz Mix - 30 Tracks"
+  - template: "{theme} Compilation"
+    example: "Cafe Jazz Compilation"
+
+description_template:
+  template: |
+    {theme} - Smooth jazz perfect for cafes, casual work, or relaxation.
+
+    {chapters}
+
+    {cta}
+  cta_block: |
+    ☕ Use these mixes inside Focus Sessions for sophisticated background music.
+
+    Download the app: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}
+
+cta_variants:
+  - variant_id: app_cafe
+    short_text: "☕ Use in Focus Sessions"
+    long_text: "☕ Use these mixes inside Focus Sessions for sophisticated background music. Download the app: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+  - variant_id: app_download
+    short_text: "Download Focus Sessions app"
+    long_text: "Download Focus Sessions to use these mixes as background music: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+
+tag_rules:
+  whitelist:
+    - jazz
+    - cafe jazz
+    - smooth jazz
+    - instrumental jazz
+    - background music
+    - instrumental
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+    - health
+
+thumbnail_style:
+  font_family: Cinzel
+  layout_variant: big_title_small_subtitle
+  safe_words: []
+
+upload_defaults:
+  privacy: unlisted
+  category_id: "10"
+  default_language: en
+  made_for_kids: false
+

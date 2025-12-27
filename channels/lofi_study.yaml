@@ -1,0 +1,77 @@
+channel_id: lofi_study
+name: Lo-Fi Study
+intent: music_compilation
+
+duration_rules:
+  target_minutes: 120
+  min_minutes: 90
+  max_minutes: 240
+  track_count: 30
+  min_track_seconds: 60
+
+prompt_constraints:
+  default_instrumental: true
+  default_vocals: false
+  energy_level: low
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+  style_guidance: "Lo-fi hip hop, chill beats. Relaxed, mellow, perfect for studying or casual work. Warm, nostalgic atmosphere."
+
+title_templates:
+  - template: "{theme} | Lo-Fi Study Music"
+    example: "Chill Lo-Fi Beats | Lo-Fi Study Music"
+  - template: "{theme} - {track_count} Tracks"
+    example: "Lo-Fi Hip Hop Mix - 30 Tracks"
+  - template: "{theme} Compilation"
+    example: "Lo-Fi Study Compilation"
+
+description_template:
+  template: |
+    {theme} - Chill lo-fi beats perfect for studying, working, or relaxing.
+
+    {chapters}
+
+    {cta}
+  cta_block: |
+    📖 Use these mixes inside Focus Sessions for calm background music while studying.
+
+    Download the app: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}
+
+cta_variants:
+  - variant_id: app_study
+    short_text: "📖 Use in Focus Sessions while studying"
+    long_text: "📖 Use these mixes inside Focus Sessions for calm background music while studying. Download the app: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+  - variant_id: app_download
+    short_text: "Download Focus Sessions app"
+    long_text: "Download Focus Sessions to use these mixes as background music: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+
+tag_rules:
+  whitelist:
+    - lofi
+    - lo-fi
+    - lofi hip hop
+    - chill beats
+    - study music
+    - instrumental
+    - background music
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+    - health
+
+thumbnail_style:
+  font_family: Cinzel
+  layout_variant: big_title_small_subtitle
+  safe_words: []
+
+upload_defaults:
+  privacy: unlisted
+  category_id: "10"
+  default_language: en
+  made_for_kids: false
+

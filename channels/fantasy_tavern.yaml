@@ -1,0 +1,77 @@
+channel_id: fantasy_tavern
+name: Fantasy Tavern
+intent: music_compilation
+
+duration_rules:
+  target_minutes: 90
+  min_minutes: 60
+  max_minutes: 120
+  track_count: 25
+  min_track_seconds: 60
+
+prompt_constraints:
+  default_instrumental: true
+  default_vocals: false
+  energy_level: medium
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+  style_guidance: "Celtic, medieval, fantasy tavern atmosphere. Warm, inviting, instrumental music suitable for role-playing games."
+
+title_templates:
+  - template: "{theme} | Fantasy Tavern Music"
+    example: "Celtic Tavern Ambience | Fantasy Tavern Music"
+  - template: "{theme} - {track_count} Tracks"
+    example: "Medieval Inn Music - 25 Tracks"
+  - template: "{theme} Compilation"
+    example: "Fantasy Tavern Compilation"
+
+description_template:
+  template: |
+    {theme} - A collection of fantasy tavern music perfect for role-playing games, reading, or relaxation.
+
+    {chapters}
+
+    {cta}
+  cta_block: |
+    🎮 Use these mixes inside Focus Sessions for immersive background music during your adventures.
+
+    Download the app: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}
+
+cta_variants:
+  - variant_id: app_focus_sessions
+    short_text: "🎮 Use in Focus Sessions app"
+    long_text: "🎮 Use these mixes inside Focus Sessions for immersive background music during your adventures. Download the app: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+  - variant_id: app_download
+    short_text: "Download Focus Sessions app"
+    long_text: "Download Focus Sessions to use these mixes as background music: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+
+tag_rules:
+  whitelist:
+    - fantasy music
+    - celtic music
+    - tavern music
+    - medieval music
+    - rpg music
+    - instrumental
+    - background music
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+    - health
+
+thumbnail_style:
+  font_family: Cinzel
+  layout_variant: big_title_small_subtitle
+  safe_words: []
+
+upload_defaults:
+  privacy: unlisted
+  category_id: "10"
+  default_language: en
+  made_for_kids: false
+

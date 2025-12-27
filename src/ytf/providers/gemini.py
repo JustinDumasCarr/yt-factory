@@ -36,7 +36,7 @@ class GeminiProvider:
         self.model = "gemini-2.5-flash"
 
     def generate_track_data(
-        self, theme: str, track_count: int, vocals_enabled: bool
+        self, theme: str, track_count: int, vocals_enabled: bool, channel_constraints: str = ""
     ) -> list[dict[str, str]]:
         """
         Generate track data (style, title, prompt) for all tracks in one API call.
@@ -45,6 +45,7 @@ class GeminiProvider:
             theme: Project theme
             track_count: Number of tracks to generate
             vocals_enabled: Whether tracks should include vocals
+            channel_constraints: Additional channel-specific constraints (banned terms, style guidance, etc.)
 
         Returns:
             List of dicts with keys: 'style', 'title', 'prompt'
@@ -67,7 +68,7 @@ Requirements:
 - Use tight variations (re-use motifs for coherence)
 - NO artist references
 - NO copyrighted lyrics
-- NO brand names
+- NO brand names{channel_constraints}
 
 Return JSON array: [{{"style": "...", "title": "...", "prompt": "..."}}, ...]
 Make sure the JSON is valid and parseable."""

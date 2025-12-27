@@ -72,11 +72,15 @@ Goal: stop babysitting the pipeline.
 
 - [ ] Retry/backoff policy for all provider calls
 - [ ] Track-level failures do not kill project (already expected)
-- [ ] `approved.txt` support (optional manual gate)
-- [ ] Auto-filter obvious failures:
+- [x] `approved.txt` support (optional manual gate)
+- [x] Auto-filter obvious failures:
   - too short
   - long initial silence
   - missing/failed downloads
+- [x] Channel-driven workflow:
+  - channel profiles with defaults and constraints
+  - funnel outputs (templated descriptions + pinned comments)
+  - review/QC step with reports
 - [ ] Batch mode:
   - run N projects sequentially
   - optional concurrency limits for generation

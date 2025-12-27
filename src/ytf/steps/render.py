@@ -7,6 +7,7 @@ Concatenates all available tracks, normalizes audio, and creates MP4 with static
 import subprocess
 from pathlib import Path
 
+from ytf.channel import get_channel
 from ytf.logger import StepLogger
 from ytf.project import PROJECTS_DIR, RenderData, load_project, save_project, update_status
 from ytf.providers.gemini import GeminiProvider
@@ -109,15 +110,58 @@ def run(project_id: str) -> None:
             if not ffmpeg.check_ffmpeg():
                 raise RuntimeError("FFmpeg is not available. Run 'ytf doctor' to check prerequisites.")
 
-            # Filter tracks: only status == "ok" and audio_path exists
-            available_tracks = [
-                track
-                for track in project.tracks
-                if track.status == "ok" and track.audio_path is not None
-            ]
+            # Load channel profile for target duration check
+            channel = None
+            if project.channel_id:
+                try:
+                    channel = get_channel(project.channel_id)
+                    log.info(f"Channel: {project.channel_id} ({channel.name})")
+                except Exception as e:
+                    log.warning(f"Failed to load channel profile: {e}")
+
+            # Track selection logic: honor approvals/QC
+            approved_path = project_dir / "approved.txt"
+            approved_indices = set()
+
+            if approved_path.exists():
+                log.info(f"Reading approved.txt: {approved_path}")
+                with open(approved_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            try:
+                                idx = int(line)
+                                approved_indices.add(idx)
+                            except ValueError:
+                                log.warning(f"Invalid track index in approved.txt: {line}")
+
+            # Filter tracks based on approval/QC status
+            if approved_indices:
+                # Use only approved tracks (still require status=="ok" and file exists)
+                log.info(f"Using approved tracks from approved.txt: {sorted(approved_indices)}")
+                available_tracks = [
+                    track
+                    for track in project.tracks
+                    if track.status == "ok"
+                    and track.audio_path is not None
+                    and track.track_index in approved_indices
+                ]
+            else:
+                # Use QC-passed tracks
+                log.info("No approved.txt found, using QC-passed tracks")
+                available_tracks = [
+                    track
+                    for track in project.tracks
+                    if track.status == "ok"
+                    and track.audio_path is not None
+                    and (track.qc is None or track.qc.passed)
+                ]
 
             if not available_tracks:
-                raise RuntimeError("No available tracks to render. All tracks are failed or missing audio files.")
+                error_msg = "No available tracks to render. All tracks are failed, missing audio files, or failed QC."
+                if approved_indices:
+                    error_msg += f" Approved tracks: {sorted(approved_indices)}"
+                raise RuntimeError(error_msg)
 
             # Sort by track_index to maintain order
             available_tracks.sort(key=lambda t: t.track_index)
@@ -125,6 +169,33 @@ def run(project_id: str) -> None:
             log.info(f"Found {len(available_tracks)} available tracks")
             total_duration = sum(track.duration_seconds for track in available_tracks)
             log.info(f"Total duration: {format_timestamp(total_duration)} ({total_duration:.2f} seconds)")
+
+            # Check if duration meets channel target (fail fast if underfilled)
+            if channel:
+                target_minutes = channel.duration_rules.target_minutes
+                target_seconds = target_minutes * 60
+                min_minutes = channel.duration_rules.min_minutes
+                min_seconds = min_minutes * 60
+
+                if total_duration < min_seconds:
+                    missing_seconds = min_seconds - total_duration
+                    missing_minutes = missing_seconds / 60
+                    error_msg = (
+                        f"Insufficient track duration: {total_duration:.2f}s ({total_duration/60:.1f} min) "
+                        f"is below minimum {min_seconds}s ({min_minutes} min). "
+                        f"Need {missing_seconds:.2f}s ({missing_minutes:.1f} min) more. "
+                        f"Channel: {project.channel_id}"
+                    )
+                    log.error(error_msg)
+                    raise RuntimeError(error_msg)
+                elif total_duration < target_seconds:
+                    missing_seconds = target_seconds - total_duration
+                    missing_minutes = missing_seconds / 60
+                    log.warning(
+                        f"Total duration {total_duration:.2f}s ({total_duration/60:.1f} min) "
+                        f"is below target {target_seconds}s ({target_minutes} min). "
+                        f"Missing {missing_seconds:.2f}s ({missing_minutes:.1f} min)."
+                    )
 
             # Get track indices for persistence
             selected_indices = [track.track_index for track in available_tracks]
@@ -252,27 +323,132 @@ def run(project_id: str) -> None:
 
             log.info(f"Chapters saved to {chapters_path}")
 
-            # Step 6: Generate YouTube description
+            # Step 6: Generate YouTube description with channel template + CTA
             log.info("Generating YouTube description...")
             description_path = output_dir / "youtube_description.txt"
 
-            # Start with metadata description if available
-            description_lines = []
-            if project.plan and project.plan.youtube_metadata:
-                description_lines.append(project.plan.youtube_metadata.description)
-            else:
-                description_lines.append("Music compilation")
+            # Load channel profile for template
+            channel = None
+            if project.channel_id:
+                try:
+                    channel = get_channel(project.channel_id)
+                except Exception as e:
+                    log.warning(f"Failed to load channel profile: {e}, using fallback description")
 
-            # Append chapters section
-            description_lines.append("")
-            description_lines.append("Chapters:")
-            description_lines.extend(chapters_lines)
+            # Format chapters text
+            chapters_text = "\n".join(chapters_lines)
+
+            # Build CTA block
+            cta_text = ""
+            if channel and project.funnel.cta_variant_id:
+                # Find matching CTA variant
+                cta_variant = None
+                for variant in channel.cta_variants:
+                    if variant.variant_id == project.funnel.cta_variant_id:
+                        cta_variant = variant
+                        break
+
+                if cta_variant:
+                    # Format CTA with UTM parameters
+                    landing_url = project.funnel.landing_url or "{landing_url}"
+                    utm_source = project.funnel.utm_source or "{utm_source}"
+                    utm_campaign = project.funnel.utm_campaign or "{utm_campaign}"
+                    
+                    cta_long = cta_variant.long_text.format(
+                        landing_url=landing_url,
+                        utm_source=utm_source,
+                        utm_campaign=utm_campaign,
+                    )
+                    cta_text = cta_long
+                else:
+                    log.warning(f"CTA variant {project.funnel.cta_variant_id} not found in channel profile")
+            elif channel and channel.description_template.cta_block:
+                # Fallback to channel default CTA block
+                landing_url = project.funnel.landing_url or "{landing_url}"
+                utm_source = project.funnel.utm_source or "{utm_source}"
+                utm_campaign = project.funnel.utm_campaign or "{utm_campaign}"
+                cta_text = channel.description_template.cta_block.format(
+                    landing_url=landing_url,
+                    utm_source=utm_source,
+                    utm_campaign=utm_campaign,
+                )
+
+            # Use channel template if available
+            if channel and channel.description_template.template:
+                description_text = channel.description_template.template.format(
+                    theme=project.theme,
+                    chapters=chapters_text,
+                    cta=cta_text,
+                )
+            else:
+                # Fallback to simple description
+                description_lines = []
+                if project.plan and project.plan.youtube_metadata:
+                    description_lines.append(project.plan.youtube_metadata.description)
+                else:
+                    description_lines.append("Music compilation")
+
+                description_lines.append("")
+                description_lines.append("Chapters:")
+                description_lines.extend(chapters_lines)
+                if cta_text:
+                    description_lines.append("")
+                    description_lines.append(cta_text)
+                description_text = "\n".join(description_lines)
 
             with open(description_path, "w", encoding="utf-8") as f:
-                f.write("\n".join(description_lines))
+                f.write(description_text)
                 f.write("\n")
 
             log.info(f"YouTube description saved to {description_path}")
+
+            # Step 6.5: Generate pinned comment
+            log.info("Generating pinned comment...")
+            pinned_comment_path = output_dir / "pinned_comment.txt"
+
+            pinned_comment_lines = []
+            if channel and project.funnel.cta_variant_id:
+                # Find matching CTA variant
+                cta_variant = None
+                for variant in channel.cta_variants:
+                    if variant.variant_id == project.funnel.cta_variant_id:
+                        cta_variant = variant
+                        break
+
+                if cta_variant:
+                    landing_url = project.funnel.landing_url or "{landing_url}"
+                    utm_source = project.funnel.utm_source or "{utm_source}"
+                    utm_campaign = project.funnel.utm_campaign or "{utm_campaign}"
+                    
+                    # Format both variants
+                    cta_short = cta_variant.short_text.format(
+                        landing_url=landing_url,
+                        utm_source=utm_source,
+                        utm_campaign=utm_campaign,
+                    )
+                    cta_long = cta_variant.long_text.format(
+                        landing_url=landing_url,
+                        utm_source=utm_source,
+                        utm_campaign=utm_campaign,
+                    )
+                    
+                    pinned_comment_lines.append("=== SHORT VARIANT ===")
+                    pinned_comment_lines.append(cta_short)
+                    pinned_comment_lines.append("")
+                    pinned_comment_lines.append("=== LONG VARIANT ===")
+                    pinned_comment_lines.append(cta_long)
+                else:
+                    log.warning(f"CTA variant {project.funnel.cta_variant_id} not found for pinned comment")
+                    pinned_comment_lines.append("(No CTA variant configured)")
+
+            if not pinned_comment_lines:
+                pinned_comment_lines.append("(No pinned comment configured)")
+
+            with open(pinned_comment_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(pinned_comment_lines))
+                f.write("\n")
+
+            log.info(f"Pinned comment saved to {pinned_comment_path}")
 
             # Step 7: Persist render data to project.json
             thumbnail_path_str = None
@@ -304,6 +480,7 @@ def run(project_id: str) -> None:
             log.info(f"  - Video: {final_video_path}")
             log.info(f"  - Chapters: {chapters_path}")
             log.info(f"  - Description: {description_path}")
+            log.info(f"  - Pinned comment: {pinned_comment_path}")
 
         except Exception as e:
             update_status(project, "render", error=e)

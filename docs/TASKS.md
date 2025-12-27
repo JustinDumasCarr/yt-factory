@@ -80,16 +80,29 @@ Legend:
 ---
 
 ## Next (high leverage improvements)
-- [ ] `approved.txt` support (manual gate)
+- [x] Channel-driven workflow:
+  - [x] Channel profiles (YAML configs) with defaults, constraints, templates
+  - [x] `ytf new` requires `--channel` and uses channel defaults
+  - [x] `plan` step applies channel constraints and validates metadata
+  - [x] Funnel outputs: templated descriptions + pinned comments with CTA
+  - Acceptance: channel profiles drive all steps, funnel outputs include CTAs
+- [x] `approved.txt` support (manual gate)
   - Acceptance: if file exists, only listed tracks are rendered
-- [ ] Auto-filter bad tracks:
-  - [ ] reject too short
-  - [ ] reject long initial silence
-  - Acceptance: filtered tracks are marked in project.json with reason
+- [x] Auto-filter bad tracks (QC step):
+  - [x] reject too short
+  - [x] reject long initial silence
+  - [x] reject missing/corrupt files
+  - Acceptance: filtered tracks are marked in project.json with reason, QC reports generated
+- [x] Review/QC step:
+  - [x] `ytf review` command
+  - [x] QC checks (duration, leading silence, file integrity)
+  - [x] Generate `qc_report.json` and `qc_report.txt`
+  - [x] Honor `approved.txt` and `rejected.txt`
+  - Acceptance: review step runs between generate and render, persists QC results
 - [ ] Retry/backoff wrapper for all HTTP calls
-  - Acceptance: transient errors don’t crash step immediately
+  - Acceptance: transient errors don't crash step immediately
 - [ ] `ytf run <id>` convenience command
-  - Runs plan -> generate -> render -> upload
+  - Runs plan -> generate -> review -> render -> upload
   - Acceptance: stops at failed step and leaves good logs
 
 ---

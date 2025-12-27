@@ -1,0 +1,84 @@
+channel_id: dnb_focus
+name: DnB Focus
+intent: music_compilation
+
+duration_rules:
+  target_minutes: 90
+  min_minutes: 60
+  max_minutes: 120
+  track_count: 25
+  min_track_seconds: 60
+
+prompt_constraints:
+  default_instrumental: true
+  default_vocals: false
+  energy_level: high
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+    - adhd
+    - concentration
+    - focus aid
+    - productivity
+  style_guidance: "Drum and bass, high-energy instrumental music. Fast-paced, rhythmic, suitable for intense work sessions. No medical claims."
+
+title_templates:
+  - template: "{theme} | DnB Focus Music"
+    example: "High Energy DnB | DnB Focus Music"
+  - template: "{theme} - {track_count} Tracks"
+    example: "Drum and Bass Mix - 25 Tracks"
+  - template: "{theme} Compilation"
+    example: "DnB Focus Compilation"
+
+description_template:
+  template: |
+    {theme} - High-energy drum and bass music for intense work sessions.
+
+    {chapters}
+
+    {cta}
+  cta_block: |
+    ⚡ Use these mixes inside Focus Sessions for high-energy background music.
+
+    Download the app: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}
+
+cta_variants:
+  - variant_id: app_high_energy
+    short_text: "⚡ Use in Focus Sessions"
+    long_text: "⚡ Use these mixes inside Focus Sessions for high-energy background music. Download the app: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+  - variant_id: app_download
+    short_text: "Download Focus Sessions app"
+    long_text: "Download Focus Sessions to use these mixes as background music: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+
+tag_rules:
+  whitelist:
+    - drum and bass
+    - dnb
+    - electronic music
+    - instrumental
+    - background music
+    - work music
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+    - adhd
+    - concentration
+    - focus aid
+    - productivity
+    - health
+
+thumbnail_style:
+  font_family: Cinzel
+  layout_variant: big_title_small_subtitle
+  safe_words: []
+
+upload_defaults:
+  privacy: unlisted
+  category_id: "10"
+  default_language: en
+  made_for_kids: false
+

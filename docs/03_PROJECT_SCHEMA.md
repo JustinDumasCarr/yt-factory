@@ -17,27 +17,34 @@ projects/<project_id>/
     final.mp4
     chapters.txt
     youtube_description.txt
+    pinned_comment.txt
+    qc_report.json
+    qc_report.txt
   logs/
     plan.log
     generate.log
+    review.log
     render.log
     upload.log
 
-## project.json shape (v1)
+## project.json shape (v2 - channel-driven)
 Top-level fields:
 - project_id: string
 - created_at: iso string
 - theme: string
-- target_minutes: number (default 60)
-- track_count: number (default 25)
+- channel_id: string (required, e.g., "cafe_jazz", "fantasy_tavern")
+- intent: string (e.g., "music_compilation", "sleep", "focus")
+- target_minutes: number (default 60, channel-driven)
+- track_count: number (default 25, channel-driven)
 - vocals: { enabled: boolean }
 - lyrics: { enabled: boolean, source: "gemini" | "manual" }
 - video: { width: 1920, height: 1080, fps: 30 }
 - upload: { privacy: "unlisted" | "private" | "public" }
+- funnel: { landing_url?, utm_source?, utm_campaign?, cta_variant_id? }
 
 State and outputs:
 - status:
-  - current_step: "new" | "plan" | "generate" | "render" | "upload" | "done"
+  - current_step: "new" | "plan" | "generate" | "review" | "render" | "upload" | "done"
   - last_successful_step: same enum
   - last_error: { step, message, stack, at } | null
 
@@ -56,9 +63,22 @@ Generated tracks:
       audio_path,
       duration_seconds,
       status: "ok" | "failed",
-      error?: { message, raw }
+      error?: { message, raw },
+      qc?: {
+        passed: boolean,
+        issues: [{ code, message, value? }],
+        measured: { duration_seconds?, leading_silence_seconds?, ... }
+      }
     }
   ]
+
+Review/QC:
+- review:
+  - qc_report_json_path
+  - qc_report_txt_path
+  - approved_track_indices[]
+  - rejected_track_indices[]
+  - qc_summary: { passed_count, failed_count, ... }
 
 Render:
 - render:

@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 
 # Step enum values
-StepType = str  # "new" | "plan" | "generate" | "render" | "upload" | "done"
+StepType = str  # "new" | "plan" | "generate" | "review" | "render" | "upload" | "done"
 PrivacyType = str  # "unlisted" | "private" | "public"
 LyricsSourceType = str  # "gemini" | "manual"
 TrackStatusType = str  # "ok" | "failed"
@@ -65,6 +65,41 @@ class UploadConfig(BaseModel):
     privacy: PrivacyType = "unlisted"
 
 
+class FunnelConfig(BaseModel):
+    """Funnel/CTA configuration for app signups."""
+
+    landing_url: Optional[str] = None
+    utm_source: Optional[str] = None
+    utm_campaign: Optional[str] = None
+    cta_variant_id: Optional[str] = None
+
+
+class QCIssue(BaseModel):
+    """A single QC issue found on a track."""
+
+    code: str  # e.g., "too_short", "leading_silence", "missing_file"
+    message: str
+    value: Optional[float] = None  # Optional measured value (e.g., duration, silence seconds)
+
+
+class TrackQC(BaseModel):
+    """Quality control data for a track."""
+
+    passed: bool = False
+    issues: list[QCIssue] = Field(default_factory=list)
+    measured: dict[str, float] = Field(default_factory=dict)  # duration_seconds, leading_silence_seconds, etc.
+
+
+class ReviewData(BaseModel):
+    """Review/QC output data."""
+
+    qc_report_json_path: Optional[str] = None
+    qc_report_txt_path: Optional[str] = None
+    approved_track_indices: list[int] = Field(default_factory=list)
+    rejected_track_indices: list[int] = Field(default_factory=list)
+    qc_summary: dict[str, int] = Field(default_factory=dict)  # passed_count, failed_count, etc.
+
+
 class PlanPrompt(BaseModel):
     """A single prompt for track generation."""
 
@@ -110,6 +145,7 @@ class Track(BaseModel):
     duration_seconds: float = 0.0
     status: TrackStatusType = "ok"
     error: Optional[TrackError] = None
+    qc: Optional[TrackQC] = None
 
 
 class RenderData(BaseModel):
@@ -138,6 +174,8 @@ class Project(BaseModel):
     project_id: str
     created_at: str  # ISO timestamp
     theme: str
+    channel_id: Optional[str] = None
+    intent: Optional[str] = None
     target_minutes: int = 60
     track_count: int = 25
     vocals: VocalsConfig = Field(default_factory=VocalsConfig)
@@ -145,8 +183,10 @@ class Project(BaseModel):
     video: VideoConfig = Field(default_factory=VideoConfig)
     upload: UploadConfig = Field(default_factory=UploadConfig)
     status: ProjectStatus = Field(default_factory=ProjectStatus)
+    funnel: FunnelConfig = Field(default_factory=FunnelConfig)
     plan: Optional[PlanData] = None
     tracks: list[Track] = Field(default_factory=list)
+    review: Optional[ReviewData] = None
     render: Optional[RenderData] = None
     youtube: Optional[YouTubeData] = None
 

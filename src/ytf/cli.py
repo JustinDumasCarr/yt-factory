@@ -13,7 +13,7 @@ Commands:
 import typer
 
 from ytf import doctor
-from ytf.steps import generate, new, plan, render, upload
+from ytf.steps import generate, new, plan, render, review, upload
 
 app = typer.Typer(help="yt-factory: Local-first automation pipeline for music compilations")
 
@@ -21,8 +21,9 @@ app = typer.Typer(help="yt-factory: Local-first automation pipeline for music co
 @app.command(name="new")
 def new_cmd(
     theme: str = typer.Argument(..., help="Project theme"),
-    minutes: int = typer.Option(60, "--minutes", "-m", help="Target duration in minutes"),
-    tracks: int = typer.Option(25, "--tracks", "-t", help="Number of tracks to generate"),
+    channel: str = typer.Option(..., "--channel", "-c", help="Channel ID (e.g., cafe_jazz, fantasy_tavern)"),
+    minutes: int = typer.Option(None, "--minutes", "-m", help="Target duration in minutes (overrides channel default)"),
+    tracks: int = typer.Option(None, "--tracks", "-t", help="Number of tracks to generate (overrides channel default)"),
     vocals: str = typer.Option("off", "--vocals", help="Vocals: 'on' or 'off'"),
     lyrics: str = typer.Option("off", "--lyrics", help="Lyrics: 'on' or 'off'"),
 ) -> None:
@@ -34,7 +35,7 @@ def new_cmd(
         typer.echo("Error: --lyrics must be 'on' or 'off'", err=True)
         raise typer.Exit(1)
 
-    project_id = new.create_project(theme, minutes, tracks, vocals, lyrics)
+    project_id = new.create_project(theme, channel, minutes, tracks, vocals, lyrics)
     typer.echo(f"Created project: {project_id}")
 
 
@@ -55,6 +56,12 @@ def plan_cmd(project_id: str = typer.Argument(..., help="Project ID")) -> None:
 def generate_cmd(project_id: str = typer.Argument(..., help="Project ID")) -> None:
     """Generate music tracks (not implemented yet in Sprint 1)."""
     generate.run(project_id)
+
+
+@app.command(name="review")
+def review_cmd(project_id: str = typer.Argument(..., help="Project ID")) -> None:
+    """Run quality control checks and generate review reports."""
+    review.run(project_id)
 
 
 @app.command(name="render")

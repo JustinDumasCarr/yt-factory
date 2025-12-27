@@ -1,0 +1,80 @@
+channel_id: sleep_ambience
+name: Sleep Ambience
+intent: sleep
+
+duration_rules:
+  target_minutes: 480
+  min_minutes: 360
+  max_minutes: 600
+  track_count: 40
+  min_track_seconds: 60
+
+prompt_constraints:
+  default_instrumental: true
+  default_vocals: false
+  energy_level: low
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+    - insomnia
+    - sleep aid
+  style_guidance: "Ambient, atmospheric, very calm. Minimal, non-intrusive. Perfect for sleep or deep relaxation. Very low energy, gentle sounds."
+
+title_templates:
+  - template: "{theme} | Sleep Music"
+    example: "Calm Ambience | Sleep Music"
+  - template: "{theme} - {track_count} Tracks"
+    example: "Sleep Ambience Mix - 40 Tracks"
+  - template: "{theme} Compilation"
+    example: "Sleep Ambience Compilation"
+
+description_template:
+  template: |
+    {theme} - Calm ambient music perfect for sleep or deep relaxation.
+
+    {chapters}
+
+    {cta}
+  cta_block: |
+    😴 Use these mixes inside Focus Sessions for peaceful background music.
+
+    Download the app: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}
+
+cta_variants:
+  - variant_id: app_sleep
+    short_text: "😴 Use in Focus Sessions"
+    long_text: "😴 Use these mixes inside Focus Sessions for peaceful background music. Download the app: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+  - variant_id: app_download
+    short_text: "Download Focus Sessions app"
+    long_text: "Download Focus Sessions to use these mixes as background music: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+
+tag_rules:
+  whitelist:
+    - sleep music
+    - ambient music
+    - relaxation music
+    - instrumental
+    - background music
+    - calm music
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+    - insomnia
+    - sleep aid
+    - health
+
+thumbnail_style:
+  font_family: Cinzel
+  layout_variant: big_title_small_subtitle
+  safe_words: []
+
+upload_defaults:
+  privacy: unlisted
+  category_id: "10"
+  default_language: en
+  made_for_kids: false
+

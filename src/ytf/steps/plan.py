@@ -7,6 +7,9 @@ Generates:
 - YouTube metadata (title, description, tags)
 """
 
+import random
+
+from ytf.channel import get_channel
 from ytf.logger import StepLogger
 from ytf.project import (
     PlanData,
@@ -37,10 +40,31 @@ def run(project_id: str) -> None:
             save_project(project)
 
             log.info("Starting plan step with Gemini integration")
+
+            # Validate channel_id is set
+            if not project.channel_id:
+                raise ValueError("Project missing channel_id. Run 'ytf new' with --channel first.")
+
+            # Load channel profile
+            try:
+                channel = get_channel(project.channel_id)
+                log.info(f"Channel: {project.channel_id} ({channel.name})")
+            except Exception as e:
+                log.error(f"Failed to load channel profile: {e}")
+                raise
+
             log.info(f"Theme: {project.theme}")
             log.info(f"Track count: {project.track_count}")
             log.info(f"Vocals enabled: {project.vocals.enabled}")
             log.info(f"Lyrics enabled: {project.lyrics.enabled}")
+
+            # Choose CTA variant from channel profile
+            if channel.cta_variants:
+                cta_variant = random.choice(channel.cta_variants)
+                project.funnel.cta_variant_id = cta_variant.variant_id
+                log.info(f"Selected CTA variant: {cta_variant.variant_id}")
+            else:
+                log.warning("No CTA variants defined in channel profile")
 
             # Initialize Gemini provider
             try:
@@ -49,12 +73,24 @@ def run(project_id: str) -> None:
                 log.error(f"Failed to initialize Gemini provider: {e}")
                 raise
 
+            # Build prompt constraints from channel
+            banned_terms_text = ""
+            if channel.prompt_constraints.banned_terms:
+                banned_terms_text = f"\nBANNED TERMS (do not use these): {', '.join(channel.prompt_constraints.banned_terms)}"
+
+            style_guidance_text = ""
+            if channel.prompt_constraints.style_guidance:
+                style_guidance_text = f"\nStyle guidance: {channel.prompt_constraints.style_guidance}"
+
+            energy_text = f"\nEnergy level: {channel.prompt_constraints.energy_level}"
+
             # Generate track data (style, title, prompt) for all tracks
             log.info(f"Generating track data for {project.track_count} tracks...")
             track_data_list = provider.generate_track_data(
                 theme=project.theme,
                 track_count=project.track_count,
                 vocals_enabled=project.vocals.enabled,
+                channel_constraints=f"{banned_terms_text}{style_guidance_text}{energy_text}",
             )
             log.info(f"Generated {len(track_data_list)} track data entries")
 
@@ -105,6 +141,35 @@ def run(project_id: str) -> None:
                 description=metadata_dict["description"],
                 tags=metadata_dict["tags"],
             )
+
+            # Validate metadata against channel tag rules
+            log.info("Validating metadata against channel rules...")
+
+            # Check for banned terms in title, description, and tags
+            all_text = f"{youtube_metadata.title} {youtube_metadata.description} {' '.join(youtube_metadata.tags)}".lower()
+            banned_found = []
+            for banned_term in channel.tag_rules.banned_terms:
+                if banned_term.lower() in all_text:
+                    banned_found.append(banned_term)
+
+            if banned_found:
+                error_msg = f"Banned terms found in metadata: {', '.join(banned_found)}. Channel: {project.channel_id}"
+                log.error(error_msg)
+                raise ValueError(error_msg)
+
+            # Enforce tag whitelist if defined
+            if channel.tag_rules.whitelist:
+                filtered_tags = []
+                for tag in youtube_metadata.tags:
+                    tag_lower = tag.lower()
+                    # Check if tag matches any whitelist entry (case-insensitive)
+                    if any(allowed.lower() in tag_lower or tag_lower in allowed.lower() for allowed in channel.tag_rules.whitelist):
+                        filtered_tags.append(tag)
+                    else:
+                        log.warning(f"Tag '{tag}' not in whitelist, removing")
+                youtube_metadata.tags = filtered_tags
+                log.info(f"Filtered tags to whitelist: {len(filtered_tags)} tags")
+
             log.info(f"YouTube title: {youtube_metadata.title}")
             log.info(f"YouTube tags: {', '.join(youtube_metadata.tags)}")
 
@@ -114,6 +179,9 @@ def run(project_id: str) -> None:
                 youtube_metadata=youtube_metadata,
             )
             project.plan = plan_data
+
+            # Persist funnel config (CTA variant already set earlier)
+            save_project(project)
 
             # Mark as successful
             update_status(project, "plan", error=None)

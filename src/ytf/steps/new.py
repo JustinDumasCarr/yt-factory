@@ -6,7 +6,9 @@ initializes project.json with user inputs, and sets up required directories.
 """
 
 from datetime import datetime
+from typing import Optional
 
+from ytf.channel import get_channel
 from ytf.logger import StepLogger
 from ytf.project import (
     Project,
@@ -14,6 +16,7 @@ from ytf.project import (
     LyricsConfig,
     VideoConfig,
     UploadConfig,
+    FunnelConfig,
     ProjectStatus,
     generate_project_id,
     create_project_folder,
@@ -24,8 +27,9 @@ from ytf.project import (
 
 def create_project(
     theme: str,
-    minutes: int = 60,
-    tracks: int = 25,
+    channel_id: str,
+    minutes: Optional[int] = None,
+    tracks: Optional[int] = None,
     vocals: str = "off",
     lyrics: str = "off",
 ) -> str:
@@ -34,34 +38,54 @@ def create_project(
 
     Args:
         theme: Project theme
-        minutes: Target duration in minutes (default 60)
-        tracks: Number of tracks to generate (default 25)
+        channel_id: Channel ID (e.g., "cafe_jazz", "fantasy_tavern")
+        minutes: Target duration in minutes (overrides channel default if provided)
+        tracks: Number of tracks to generate (overrides channel default if provided)
         vocals: "on" or "off" (default "off")
         lyrics: "on" or "off" (default "off", only applies if vocals is "on")
 
     Returns:
         Project ID string
+
+    Raises:
+        FileNotFoundError: If channel config doesn't exist
+        ValueError: If channel config is invalid
     """
+    # Load channel profile
+    channel = get_channel(channel_id)
+
     # Generate project ID
     project_id = generate_project_id(theme)
 
     # Create folder structure
     project_dir = create_project_folder(project_id)
 
-    # Initialize project with user inputs
+    # Use channel defaults, but allow overrides
+    target_minutes = minutes if minutes is not None else channel.duration_rules.target_minutes
+    track_count = tracks if tracks is not None else channel.duration_rules.track_count
+
+    # Initialize project with user inputs and channel defaults
     vocals_enabled = vocals == "on"
     lyrics_enabled = lyrics == "on" and vocals_enabled
+
+    # Use channel prompt constraints if vocals not explicitly set
+    if vocals == "off":
+        # Channel default takes precedence
+        vocals_enabled = not channel.prompt_constraints.default_instrumental
 
     project = Project(
         project_id=project_id,
         created_at=datetime.now().isoformat(),
         theme=theme,
-        target_minutes=minutes,
-        track_count=tracks,
+        channel_id=channel_id,
+        intent=channel.intent,
+        target_minutes=target_minutes,
+        track_count=track_count,
         vocals=VocalsConfig(enabled=vocals_enabled),
         lyrics=LyricsConfig(enabled=lyrics_enabled, source="gemini"),
         video=VideoConfig(width=1920, height=1080, fps=30),
-        upload=UploadConfig(privacy="unlisted"),
+        upload=UploadConfig(privacy=channel.upload_defaults.privacy),
+        funnel=FunnelConfig(),
         status=ProjectStatus(current_step="new", last_successful_step="new"),
     )
 
@@ -69,9 +93,11 @@ def create_project(
     with StepLogger(project_id, "new") as log:
         try:
             log.info(f"Creating project: {project_id}")
+            log.info(f"Channel: {channel_id} ({channel.name})")
             log.info(f"Theme: {theme}")
-            log.info(f"Target minutes: {minutes}")
-            log.info(f"Track count: {tracks}")
+            log.info(f"Intent: {channel.intent}")
+            log.info(f"Target minutes: {target_minutes} (channel default: {channel.duration_rules.target_minutes})")
+            log.info(f"Track count: {track_count} (channel default: {channel.duration_rules.track_count})")
             log.info(f"Vocals: {vocals_enabled}")
             log.info(f"Lyrics: {lyrics_enabled}")
 
