@@ -16,7 +16,7 @@
 ## Technology Stack
 
 ### Core Technologies
-- **Python 3.9+** - Primary language
+- **Python 3.10+** - Primary language (required)
 - **Typer** - CLI framework
 - **Pydantic** - Data validation and models
 - **httpx** - HTTP client for API calls
@@ -54,11 +54,16 @@ yt-factory/
 │   │   ├── new.py        # Project creation
 │   │   ├── plan.py       # Planning (Gemini)
 │   │   ├── generate.py   # Music generation (Suno)
-│   │   ├── render.py     # Video rendering (FFmpeg)
-│   │   └── upload.py      # YouTube upload
+│   │   ├── review.py     # Quality control
+│   │   ├── render.py      # Video rendering (FFmpeg)
+│   │   ├── upload.py      # YouTube upload
+│   │   └── queue.py      # Queue-based batch processing
 │   └── utils/             # Utilities
 │       ├── ffmpeg.py     # FFmpeg operations
-│       └── ffprobe.py    # FFprobe operations
+│       ├── ffprobe.py    # FFprobe operations
+│       ├── retry.py      # Retry/backoff utilities
+│       ├── qc.py         # Quality control checks
+│       └── log_summary.py # Log summary generation
 ├── projects/              # Project data (gitignored)
 │   └── <project_id>/     # Per-project folders
 │       ├── project.json  # Single source of truth
@@ -75,13 +80,14 @@ yt-factory/
 
 ### Step-Based Workflow
 
-The pipeline consists of 5 sequential steps, each resumable:
+The pipeline consists of 6 sequential steps, each resumable:
 
-1. **`new`** - Create project folder and `project.json`
-2. **`plan`** - Generate track prompts, lyrics (optional), YouTube metadata
+1. **`new`** - Create project folder and `project.json` (channel-driven)
+2. **`plan`** - Generate track prompts, lyrics (optional), YouTube metadata (channel-driven)
 3. **`generate`** - Generate music tracks via Suno API
-4. **`render`** - Concatenate tracks, normalize audio, create MP4
-5. **`upload`** - Upload to YouTube with metadata
+4. **`review`** - Quality control checks and track filtering
+5. **`render`** - Concatenate tracks, normalize audio, create MP4 with per-project background/thumbnail (hard gates)
+6. **`upload`** - Upload to YouTube with metadata (requires thumbnail)
 
 ### State Management
 
@@ -101,8 +107,11 @@ All project state is stored in a Pydantic-validated JSON file:
 - `status.last_error` - Error details (step, message, stack trace, timestamp)
 
 **Logging:**
-- Each step writes to `logs/<step>.log`
+- Each step writes to `logs/<step>.log` (text logs, always created)
+- Optional JSON logs: `logs/<step>.log.json` (if `YTF_JSON_LOGS=true`)
+- Error summaries: `logs/<step>_summary.json` (auto-generated after each step)
 - Errors are persisted to both log file and `project.json.status.last_error`
+- View logs: `ytf logs view <project_id>` or `ytf logs summary <project_id>`
 
 ---
 
@@ -131,15 +140,17 @@ All project state is stored in a Pydantic-validated JSON file:
 - Status tracking: pending, complete, failed
 
 ### ✅ Rendering (FFmpeg)
-- Track filtering (uses all `status=="ok"` tracks)
+- Track filtering (uses approved tracks or all `status=="ok"` + QC passed tracks)
 - Audio concatenation via FFmpeg concat demuxer
 - Loudness normalization (EBU R128 standard)
 - Static background image muxing to MP4
 - Background image generation via Gemini 2.5 Flash Image API
-  - Falls back to default black background if generation fails
-- Thumbnail creation with text overlay
-  - Album title and theme text
-  - Wide letter spacing for readability
+  - **Hard gate**: Each project must have its own generated background (render fails if generation fails, no upload without background)
+  - Channel-aware prompts (includes channel style_guidance and intent)
+- Thumbnail creation with text overlay (channel-styled)
+  - Album title and channel title
+  - Channel-specific fonts, layouts, colors (from brand folder if present)
+  - **Hard gate**: Thumbnail required for upload (upload fails if missing)
 - Chapter file generation (`chapters.txt`)
 - YouTube description file generation (`youtube_description.txt`)
 - Output: 1080p, 30fps MP4
@@ -147,9 +158,13 @@ All project state is stored in a Pydantic-validated JSON file:
 ### ✅ YouTube Upload
 - OAuth 2.0 authentication with token caching
 - Token refresh handling
-- Resumable upload with exponential backoff retry
-- Metadata application (title, description, tags, privacy)
-- Thumbnail upload support
+- Resumable upload with exponential backoff retry (up to 10 retries)
+- Metadata application (title, description, tags, privacy, category, language, made_for_kids)
+- **Hard gate**: Upload requires thumbnail (`project.render.thumbnail_path` must exist)
+- Thumbnail upload support (automatic if thumbnail exists)
+- Idempotent behavior:
+  - If video already uploaded and thumbnail uploaded: skips
+  - If video already uploaded but thumbnail missing: retries thumbnail upload
 - Video ID persistence to `project.json`
 
 ### ✅ Developer Tools
@@ -157,6 +172,10 @@ All project state is stored in a Pydantic-validated JSON file:
   - FFmpeg installation check
   - Environment variables check
   - Writable projects directory check
+- `ytf run <project_id>` - Run pipeline steps sequentially
+- `ytf batch` - Create and run multiple projects in batch
+- `ytf queue add/ls/run` - Queue-based batch processing with resumability
+- `ytf logs view/summary` - View logs and error summaries
 
 ---
 
@@ -168,15 +187,16 @@ All project state is stored in a Pydantic-validated JSON file:
 - One successful end-to-end run completed
 
 ### Milestone 2: Reliability + Throughput
-**Status:** 🔄 **IN PROGRESS**
-- [ ] Retry/backoff policy for all provider calls
-- [ ] `approved.txt` support (manual gate for track selection)
-- [ ] Auto-filter bad tracks:
+**Status:** ✅ **COMPLETE**
+- [x] Retry/backoff policy for all provider calls (Gemini, Suno, YouTube)
+- [x] `approved.txt` support (manual gate for track selection)
+- [x] Auto-filter bad tracks:
   - Reject too short tracks
   - Reject tracks with long initial silence
   - Reject missing/failed downloads
-- [ ] Batch mode (run N projects sequentially)
-- [ ] Improved logs (structured JSON logs optional)
+- [x] Batch mode (run N projects sequentially)
+- [x] Queue-based batch processing (file-based queue, attempt caps, partial resume)
+- [x] Improved logs (structured JSON logs optional, error summaries, `ytf logs` command)
 
 ### Milestone 3: Optional Visual Upgrades
 **Status:** 📋 **PLANNED**
@@ -412,10 +432,8 @@ ytf doctor
 1. **No Database:** All state in `project.json` (by design for v1)
 2. **No Docker:** Local development only (planned for Milestone 4)
 3. **No Web UI:** CLI only (planned for later)
-4. **No Batch Processing:** One project at a time (planned for Milestone 2)
-5. **No Retry Logic:** Some API calls lack retry/backoff (planned for Milestone 2)
-6. **Manual Track Approval:** No `approved.txt` support yet (planned for Milestone 2)
-7. **Image Generation:** Requires paid Gemini API plan (free tier doesn't support images)
+4. **Image Generation:** Requires paid Gemini API plan (free tier doesn't support images)
+5. **Python 3.10+ Required:** CLI enforces version check (removes importlib.metadata warnings)
 
 ---
 
@@ -428,10 +446,12 @@ ytf doctor
   - `output/youtube_description.txt`
   - Uploaded YouTube video ID recorded in `project.json`
 
-### Milestone 2 (In Progress)
+### Milestone 2 (Complete ✅)
 - Can run overnight batches and wake up to finished renders/uploads
 - Track failures don't require manual intervention
 - Auto-filtering removes obviously bad tracks
+- Queue-based processing with resumability and attempt caps
+- Enhanced logging and error summaries for debugging
 
 ### Milestone 3 (Planned)
 - Visual enhancements plug in without changing pipeline core
@@ -473,9 +493,12 @@ ytf doctor
 - Per-step logging
 - Error persistence
 
-**🔄 In Progress:**
+**✅ Completed (Milestone 2):**
 - Reliability improvements (retry logic, auto-filtering)
-- Batch processing support
+- Batch processing support (queue-based with resumability)
+- Channel-driven workflow
+- Quality control (review step)
+- Enhanced logging (JSON logs, summaries, CLI tools)
 
 **📋 Planned:**
 - Visual enhancements (Runway, Creatomate)

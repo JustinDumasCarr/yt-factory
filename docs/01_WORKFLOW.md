@@ -111,6 +111,38 @@ Outputs:
   - if `project.json.youtube.video_id` exists and thumbnail already uploaded, skips
   - if `project.json.youtube.video_id` exists but thumbnail not uploaded, retries thumbnail upload
 
+## Common Commands (Quick Reference)
+
+**Single project execution:**
+```bash
+ytf run <project_id> [--to <step>]  # Run pipeline steps sequentially
+```
+
+**Queue-based batch processing:**
+```bash
+ytf queue add --channel <id> --theme <theme> --mode full --count N  # Add items to queue
+ytf queue ls                                                         # List queue status
+ytf queue run [--limit N]                                           # Process queue items
+```
+
+**View logs and summaries:**
+```bash
+ytf logs view <project_id> [--step <step>] [--errors-only] [--json]  # View log entries
+ytf logs summary <project_id> [--step <step>]                        # View error summaries
+```
+
+**Individual step commands:**
+```bash
+ytf new <theme> --channel <id>     # Create project
+ytf plan <project_id>               # Generate planning data
+ytf generate <project_id>           # Generate music tracks
+ytf review <project_id>             # Run quality control
+ytf render <project_id>             # Render final video
+ytf upload <project_id>             # Upload to YouTube
+```
+
+---
+
 ## Runner commands
 
 ### `ytf run <project_id> --to <step>`

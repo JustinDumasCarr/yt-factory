@@ -14,13 +14,13 @@ Legend:
 ## Milestone 0 . Repo scaffold (local-first)
 Goal: repo has the structure and docs needed to implement cleanly.
 
-- [ ] Create folder structure:
+- [x] Create folder structure:
   - docs/
   - src/
   - projects/ (gitignored)
-- [ ] Add `.env.example`
-- [ ] Add `.cursorrules`
-- [ ] Add baseline docs (overview, workflow, schema, logging)
+- [ ] Add `.env.example` (optional, documented in README)
+- [x] Add `.cursorrules`
+- [x] Add baseline docs (overview, workflow, schema, logging)
 
 Exit criteria:
 - Repo opens in Cursor, docs are present, and the expected layout exists.
@@ -30,8 +30,8 @@ Exit criteria:
 ## Milestone 1 . Local end-to-end pipeline (no Runway/Creatomate)
 Goal: go from theme to an Unlisted YouTube upload on macOS using CLI steps.
 
-- [ ] CLI commands exist: `new`, `plan`, `generate`, `render`, `upload`
-- [ ] Project state management:
+- [x] CLI commands exist: `new`, `plan`, `generate`, `render`, `upload`
+- [x] Project state management:
   - create/read/write `project.json`
   - per-step log files
   - status updates + last error persisted
@@ -71,8 +71,11 @@ Exit criteria:
 ## Milestone 2 . Reliability + throughput
 Goal: stop babysitting the pipeline.
 
-- [ ] Retry/backoff policy for all provider calls
-- [ ] Track-level failures do not kill project (already expected)
+- [x] Retry/backoff policy for all provider calls
+  - Gemini: retry_call wrapper (3 retries, exponential backoff)
+  - Suno: retry_call wrapper (3 retries, exponential backoff)
+  - YouTube: resumable upload with exponential backoff (up to 10 retries)
+- [x] Track-level failures do not kill project (already expected, implemented)
 - [x] `approved.txt` support (optional manual gate)
 - [x] Auto-filter obvious failures:
   - too short

@@ -63,7 +63,7 @@ Legend:
 - [x] Generate chapters and description files
   - Acceptance: `output/chapters.txt` and `output/youtube_description.txt` exist
 - [x] Implement background image generation with Gemini
-  - Acceptance: generates theme-appropriate background using Gemini 2.5 Flash Image API, falls back to default if fails
+  - Acceptance: generates theme-appropriate background using Gemini 2.5 Flash Image API per-project (hard gate: render fails if generation fails, no upload without background)
 - [x] Implement thumbnail creation with text overlay
   - Acceptance: creates `assets/thumbnail.png` with album title and theme text overlaid
 
@@ -79,7 +79,7 @@ Legend:
 - [x] Auto thumbnail upload
   - Acceptance: if thumbnail exists, automatically uploads and persists status
 - [x] Idempotent upload behavior
-  - Acceptance: re-running upload step skips if video_id already exists
+  - Acceptance: re-running upload step skips if video_id already exists and thumbnail uploaded; if video uploaded but thumbnail missing, retries thumbnail upload
 
 ---
 
