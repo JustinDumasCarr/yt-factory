@@ -11,7 +11,21 @@ Commands:
 - upload: Upload to YouTube
 - run: Run pipeline steps sequentially for a project
 - batch: Create and run multiple projects in batch
+
+Note: Requires Python 3.10+. The `importlib.metadata.packages_distributions` error
+on Python 3.9 is expected and will be resolved by using Python 3.10+.
 """
+
+import sys
+
+# Check Python version early
+if sys.version_info < (3, 10):
+    print(
+        "Error: yt-factory requires Python 3.10 or higher. "
+        f"Current version: {sys.version}",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 import typer
 
@@ -111,6 +125,11 @@ def batch_cmd(
     typer.echo(f"Failed: {summary['failed']}/{summary['total_projects']}")
     typer.echo(f"Summary saved to: projects/{summary['batch_id']}_summary.json")
 
-if __name__ == "__main__":
+def main() -> None:
+    """Main entry point for the CLI."""
     app()
+
+
+if __name__ == "__main__":
+    main()
 

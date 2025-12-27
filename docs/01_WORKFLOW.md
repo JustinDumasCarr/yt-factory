@@ -2,7 +2,25 @@
 
 This is a step-based CLI pipeline.
 
-Steps:
+## Setup
+
+1. **Install Python 3.10+** (required)
+2. **Create a virtual environment**:
+   ```bash
+   python3.10 -m venv venv
+   source venv/bin/activate
+   ```
+3. **Install the package**:
+   ```bash
+   pip install -e .
+   ```
+4. **Verify installation**:
+   ```bash
+   ytf doctor
+   ```
+
+## Steps
+
 1. new
 2. plan
 3. generate
