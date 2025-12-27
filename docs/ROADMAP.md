@@ -35,7 +35,7 @@ Goal: go from theme to an Unlisted YouTube upload on macOS using CLI steps.
   - create/read/write `project.json`
   - per-step log files
   - status updates + last error persisted
-- [ ] Gemini integration:
+- [x] Gemini integration:
   - generates prompts
   - generates optional lyrics when vocals enabled
   - generates YouTube metadata draft

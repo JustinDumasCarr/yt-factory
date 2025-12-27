@@ -69,10 +69,12 @@ class PlanPrompt(BaseModel):
     """A single prompt for track generation."""
 
     track_index: int
-    prompt: str
+    style: str  # Music style/genre (required for Suno customMode)
+    title: str  # Track title (required for Suno customMode)
+    prompt: str  # Musical description with mood, instrumentation, tempo
     seed_hint: Optional[str] = None
     vocals_enabled: bool = False
-    lyrics_text: Optional[str] = None
+    lyrics_text: Optional[str] = None  # Lyrics text (used as prompt in Suno when instrumental=false)
 
 
 class YouTubeMetadata(BaseModel):

@@ -1,17 +1,27 @@
 """
-Plan step: Generate planning data (skeleton in Sprint 1).
+Plan step: Generate planning data using Gemini API.
 
-In Sprint 1, this step only loads the project, sets status, and logs.
-Actual Gemini integration will be implemented in a future sprint.
+Generates:
+- Track prompts with style, title, and musical description
+- Optional lyrics for each track (if vocals and lyrics enabled)
+- YouTube metadata (title, description, tags)
 """
 
 from ytf.logger import StepLogger
-from ytf.project import load_project, save_project, update_status
+from ytf.project import (
+    PlanData,
+    PlanPrompt,
+    YouTubeMetadata,
+    load_project,
+    save_project,
+    update_status,
+)
+from ytf.providers.gemini import GeminiProvider
 
 
 def run(project_id: str) -> None:
     """
-    Run the plan step (skeleton implementation).
+    Run the plan step with full Gemini integration.
 
     Args:
         project_id: Project ID
@@ -26,20 +36,94 @@ def run(project_id: str) -> None:
             update_status(project, "plan")
             save_project(project)
 
-            log.info("Starting plan step (not implemented yet)")
-            log.info("This step will generate prompts and YouTube metadata using Gemini in a future sprint.")
+            log.info("Starting plan step with Gemini integration")
+            log.info(f"Theme: {project.theme}")
+            log.info(f"Track count: {project.track_count}")
+            log.info(f"Vocals enabled: {project.vocals.enabled}")
+            log.info(f"Lyrics enabled: {project.lyrics.enabled}")
 
-            # TODO: Actual implementation in future sprint
-            # - Call Gemini API to generate prompts
-            # - Generate optional lyrics if vocals enabled
-            # - Generate YouTube metadata (title, description, tags)
-            # - Save to project.json.plan
+            # Initialize Gemini provider
+            try:
+                provider = GeminiProvider()
+            except ValueError as e:
+                log.error(f"Failed to initialize Gemini provider: {e}")
+                raise
 
-            # Mark as successful (skeleton)
+            # Generate track data (style, title, prompt) for all tracks
+            log.info(f"Generating track data for {project.track_count} tracks...")
+            track_data_list = provider.generate_track_data(
+                theme=project.theme,
+                track_count=project.track_count,
+                vocals_enabled=project.vocals.enabled,
+            )
+            log.info(f"Generated {len(track_data_list)} track data entries")
+
+            # Create PlanPrompt objects
+            prompts = []
+            for i, track_data in enumerate(track_data_list):
+                prompt = PlanPrompt(
+                    track_index=i,
+                    style=track_data["style"],
+                    title=track_data["title"],
+                    prompt=track_data["prompt"],
+                    vocals_enabled=project.vocals.enabled,
+                )
+                prompts.append(prompt)
+                log.info(f"Track {i}: {track_data['title']} ({track_data['style']})")
+
+            # Generate lyrics if vocals and lyrics are enabled
+            if project.vocals.enabled and project.lyrics.enabled:
+                log.info("Generating lyrics for tracks with vocals...")
+                for prompt in prompts:
+                    try:
+                        log.info(f"Generating lyrics for track {prompt.track_index}: {prompt.title}")
+                        lyrics = provider.generate_lyrics(
+                            style=prompt.style,
+                            title=prompt.title,
+                            theme=project.theme,
+                        )
+                        prompt.lyrics_text = lyrics
+                        log.info(
+                            f"Generated lyrics for track {prompt.track_index} "
+                            f"({len(lyrics)} characters)"
+                        )
+                    except Exception as e:
+                        log.error(
+                            f"Failed to generate lyrics for track {prompt.track_index}: {e}"
+                        )
+                        # Continue with other tracks even if one fails
+                        raise
+
+            # Generate YouTube metadata
+            log.info("Generating YouTube metadata...")
+            metadata_dict = provider.generate_youtube_metadata(
+                theme=project.theme,
+                track_count=project.track_count,
+            )
+            youtube_metadata = YouTubeMetadata(
+                title=metadata_dict["title"],
+                description=metadata_dict["description"],
+                tags=metadata_dict["tags"],
+            )
+            log.info(f"YouTube title: {youtube_metadata.title}")
+            log.info(f"YouTube tags: {', '.join(youtube_metadata.tags)}")
+
+            # Create PlanData and save to project
+            plan_data = PlanData(
+                prompts=prompts,
+                youtube_metadata=youtube_metadata,
+            )
+            project.plan = plan_data
+
+            # Mark as successful
             update_status(project, "plan", error=None)
             save_project(project)
 
-            log.info("Plan step completed (skeleton)")
+            log.info("Plan step completed successfully")
+            log.info(f"Generated {len(prompts)} track prompts")
+            if project.vocals.enabled and project.lyrics.enabled:
+                log.info(f"Generated lyrics for {len([p for p in prompts if p.lyrics_text])} tracks")
+
         except Exception as e:
             update_status(project, "plan", error=e)
             save_project(project)

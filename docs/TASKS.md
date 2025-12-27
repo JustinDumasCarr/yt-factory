@@ -38,11 +38,11 @@ Legend:
   - Acceptance: returns non-zero exit code on missing prerequisites
 
 ### D . Gemini provider
-- [ ] Implement Gemini client wrapper
+- [x] Implement Gemini client wrapper
   - Acceptance: one function can call Gemini and return text reliably
-- [ ] Implement `plan` step (prompts + optional lyrics + YouTube metadata)
+- [x] Implement `plan` step (prompts + optional lyrics + YouTube metadata)
   - Acceptance: writes `plan.prompts[]` and `plan.youtube_metadata` to project.json
-- [ ] Add prompt templates and constraints
+- [x] Add prompt templates and constraints
   - Acceptance: vocals OFF creates instrumental prompts; vocals ON creates prompt+lyrics pairs
 
 ### E . Suno provider
