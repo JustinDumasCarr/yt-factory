@@ -306,7 +306,11 @@ def run(project_id: str) -> None:
             title_spaced = add_letter_spacing(title_uppercase)
             
             # Get channel title and process
-            channel_title = get_channel_title()
+            # Use channel.name from config if available, otherwise fall back to env var or default
+            if channel and channel.name:
+                channel_title = channel.name
+            else:
+                channel_title = get_channel_title()
             channel_uppercase = channel_title.upper()
             channel_spaced = add_letter_spacing(channel_uppercase)
             
