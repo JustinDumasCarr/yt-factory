@@ -44,8 +44,8 @@ Goal: go from theme to an Unlisted YouTube upload on macOS using CLI steps.
   - poll
   - download audio
   - record duration + paths
-- [ ] Render integration (FFmpeg):
-  - select tracks to reach 60 minutes
+- [x] Render integration (FFmpeg):
+  - use all available tracks (status==ok)
   - loudness normalize
   - mux static image to MP4
   - generate chapters

@@ -54,13 +54,13 @@ Legend:
   - Acceptance: each track in project.json has `duration_seconds`
 
 ### F . Rendering (FFmpeg)
-- [ ] Implement track selection to hit ~60 min
-  - Acceptance: chooses tracks in index order until target minutes reached
-- [ ] Implement loudness normalization (simple v1)
+- [x] Implement track filtering (use all ok tracks)
+  - Acceptance: uses all tracks with status==ok and audio_path exists, sorted by track_index
+- [x] Implement loudness normalization (simple v1)
   - Acceptance: output audio does not vary wildly in volume (basic loudnorm)
-- [ ] Implement static image mux to MP4
+- [x] Implement static image mux to MP4
   - Acceptance: produces `output/final.mp4` at 1080p 30fps
-- [ ] Generate chapters and description files
+- [x] Generate chapters and description files
   - Acceptance: `output/chapters.txt` and `output/youtube_description.txt` exist
 
 ### G . YouTube upload

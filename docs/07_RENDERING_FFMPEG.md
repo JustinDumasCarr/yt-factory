@@ -3,18 +3,16 @@
 Rendering happens locally.
 
 ## Inputs
-- background image: assets/background.png (default)
+- background image: assets/background.png (default, generated if missing)
 - audio tracks: tracks/*.mp3 (or wav)
-- target_minutes: 60
 
-## Selection logic (v1)
-- if approved.txt exists, use only approved tracks
-- else use all ok tracks
-- stop adding tracks when target length reached
+## Track filtering
+- Use all tracks with status == "ok" and audio_path exists
+- Tracks are sorted by track_index to maintain order
 
 ## Audio processing
-- concatenate tracks
-- loudness normalization for consistent volume
+- concatenate all available tracks
+- loudness normalization for consistent volume (I=-16 LUFS, YouTube standard)
 - optional fade between tracks can be added later
 
 ## Video processing
