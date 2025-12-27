@@ -13,27 +13,27 @@ Legend:
 
 ## Now (build the full local pipeline)
 ### A . Scaffolding
-- [ ] Create repo structure: `src/`, `docs/`, `projects/`
+- [x] Create repo structure: `src/`, `docs/`, `projects/`
   - Acceptance: folders exist, projects/ is gitignored
-- [ ] Add `.env.example`
+- [x] Add `.env.example`
   - Acceptance: contains keys for Gemini, Suno, YouTube OAuth paths, optional defaults
-- [ ] Add `docs/ROADMAP.md` and `docs/TASKS.md`
+- [x] Add `docs/ROADMAP.md` and `docs/TASKS.md`
   - Acceptance: these files exist and are linked in README
 
 ### B . Project state + logging
-- [ ] Implement project folder creation and id generation
+- [x] Implement project folder creation and id generation
   - Acceptance: `ytf new` creates `projects/<id>/` with subfolders and `project.json`
-- [ ] Implement read/write helpers for `project.json`
+- [x] Implement read/write helpers for `project.json`
   - Acceptance: all commands can load and update project.json reliably
-- [ ] Implement per-step logs
+- [x] Implement per-step logs
   - Acceptance: each step writes to `logs/<step>.log`
-- [ ] Implement status updates + last error persistence
+- [x] Implement status updates + last error persistence
   - Acceptance: on failure, `project.json.status.last_error` includes message + stack + step
 
 ### C . CLI command skeleton
-- [ ] Implement CLI entry and commands: `new`, `plan`, `generate`, `render`, `upload`
+- [x] Implement CLI entry and commands: `new`, `plan`, `generate`, `render`, `upload`
   - Acceptance: commands run and print friendly output without doing real work yet
-- [ ] Implement `ytf doctor` command (sanity checks)
+- [x] Implement `ytf doctor` command (sanity checks)
   - Checks: FFmpeg installed, env vars present, writable projects dir
   - Acceptance: returns non-zero exit code on missing prerequisites
 

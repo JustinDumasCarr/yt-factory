@@ -1,0 +1,298 @@
+"""
+Project state management: read/write project.json, validation, folder creation.
+
+This module provides the single source of truth for project state.
+All project data is stored in project.json following the schema in docs/03_PROJECT_SCHEMA.md.
+"""
+
+import json
+import re
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
+
+# Step enum values
+StepType = str  # "new" | "plan" | "generate" | "render" | "upload" | "done"
+PrivacyType = str  # "unlisted" | "private" | "public"
+LyricsSourceType = str  # "gemini" | "manual"
+TrackStatusType = str  # "ok" | "failed"
+
+
+class LastError(BaseModel):
+    """Error information persisted to project.json."""
+
+    step: str
+    message: str
+    stack: str
+    at: str  # ISO timestamp
+
+
+class ProjectStatus(BaseModel):
+    """Current status of the project."""
+
+    current_step: StepType = "new"
+    last_successful_step: Optional[StepType] = None
+    last_error: Optional[LastError] = None
+
+
+class VocalsConfig(BaseModel):
+    """Vocals configuration."""
+
+    enabled: bool = False
+
+
+class LyricsConfig(BaseModel):
+    """Lyrics configuration."""
+
+    enabled: bool = False
+    source: LyricsSourceType = "gemini"
+
+
+class VideoConfig(BaseModel):
+    """Video output settings."""
+
+    width: int = 1920
+    height: int = 1080
+    fps: int = 30
+
+
+class UploadConfig(BaseModel):
+    """Upload settings."""
+
+    privacy: PrivacyType = "unlisted"
+
+
+class PlanPrompt(BaseModel):
+    """A single prompt for track generation."""
+
+    track_index: int
+    prompt: str
+    seed_hint: Optional[str] = None
+    vocals_enabled: bool = False
+    lyrics_text: Optional[str] = None
+
+
+class YouTubeMetadata(BaseModel):
+    """YouTube video metadata."""
+
+    title: str
+    description: str
+    tags: list[str] = Field(default_factory=list)
+
+
+class PlanData(BaseModel):
+    """Planning output data."""
+
+    prompts: list[PlanPrompt] = Field(default_factory=list)
+    youtube_metadata: Optional[YouTubeMetadata] = None
+
+
+class TrackError(BaseModel):
+    """Error information for a failed track."""
+
+    message: str
+    raw: Optional[str] = None
+
+
+class Track(BaseModel):
+    """Generated track metadata."""
+
+    track_index: int
+    prompt: str
+    provider: str = "suno"
+    job_id: Optional[str] = None
+    audio_path: Optional[str] = None
+    duration_seconds: float = 0.0
+    status: TrackStatusType = "ok"
+    error: Optional[TrackError] = None
+
+
+class RenderData(BaseModel):
+    """Render output data."""
+
+    background_path: Optional[str] = None
+    selected_track_indices: list[int] = Field(default_factory=list)
+    output_mp4_path: Optional[str] = None
+    chapters_path: Optional[str] = None
+    description_path: Optional[str] = None
+
+
+class YouTubeData(BaseModel):
+    """YouTube upload result data."""
+
+    video_id: Optional[str] = None
+    uploaded_at: Optional[str] = None
+    privacy: Optional[PrivacyType] = None
+    title: Optional[str] = None
+
+
+class Project(BaseModel):
+    """Root project model - single source of truth."""
+
+    project_id: str
+    created_at: str  # ISO timestamp
+    theme: str
+    target_minutes: int = 60
+    track_count: int = 25
+    vocals: VocalsConfig = Field(default_factory=VocalsConfig)
+    lyrics: LyricsConfig = Field(default_factory=LyricsConfig)
+    video: VideoConfig = Field(default_factory=VideoConfig)
+    upload: UploadConfig = Field(default_factory=UploadConfig)
+    status: ProjectStatus = Field(default_factory=ProjectStatus)
+    plan: Optional[PlanData] = None
+    tracks: list[Track] = Field(default_factory=list)
+    render: Optional[RenderData] = None
+    youtube: Optional[YouTubeData] = None
+
+
+# Project directory structure
+PROJECTS_DIR = Path(__file__).parent.parent.parent / "projects"
+
+
+def generate_project_id(theme: str) -> str:
+    """
+    Generate a project ID in format: YYYYMMDD_HHMMSS_<slug>.
+
+    Args:
+        theme: Project theme string
+
+    Returns:
+        Project ID string
+    """
+    now = datetime.now()
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
+
+    # Create slug: lowercase, spaces to hyphens, remove non-alphanumeric except hyphens
+    slug = theme.lower()
+    slug = re.sub(r"[^\w\s-]", "", slug)  # Remove special chars
+    slug = re.sub(r"[-\s]+", "-", slug)  # Collapse spaces/hyphens
+    slug = slug.strip("-")  # Remove leading/trailing hyphens
+
+    # Fallback if slug is empty
+    if not slug:
+        slug = "project"
+
+    return f"{timestamp}_{slug}"
+
+
+def create_project_folder(project_id: str) -> Path:
+    """
+    Create project folder structure with required subdirectories.
+
+    Args:
+        project_id: Project ID
+
+    Returns:
+        Path to project directory
+    """
+    project_dir = PROJECTS_DIR / project_id
+
+    # Create main directory
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create subdirectories
+    (project_dir / "tracks").mkdir(exist_ok=True)
+    (project_dir / "assets").mkdir(exist_ok=True)
+    (project_dir / "output").mkdir(exist_ok=True)
+    (project_dir / "logs").mkdir(exist_ok=True)
+
+    return project_dir
+
+
+def load_project(project_id: str) -> Project:
+    """
+    Load and validate project.json.
+
+    Args:
+        project_id: Project ID
+
+    Returns:
+        Validated Project model
+
+    Raises:
+        FileNotFoundError: If project.json doesn't exist
+        ValueError: If project.json is invalid
+    """
+    project_dir = PROJECTS_DIR / project_id
+    project_json_path = project_dir / "project.json"
+
+    if not project_json_path.exists():
+        raise FileNotFoundError(
+            f"Project not found: {project_id}. Expected {project_json_path}"
+        )
+
+    try:
+        with open(project_json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON in project.json: {e}") from e
+
+    try:
+        return Project(**data)
+    except Exception as e:
+        raise ValueError(f"Invalid project.json structure: {e}") from e
+
+
+def save_project(project: Project) -> None:
+    """
+    Save project to project.json with validation.
+
+    Args:
+        project: Project model to save
+
+    Raises:
+        ValueError: If project validation fails
+    """
+    project_dir = PROJECTS_DIR / project.project_id
+    project_json_path = project_dir / "project.json"
+
+    # Ensure directory exists
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    # Validate before saving
+    try:
+        # Pydantic will validate on model creation, but we can also call model_dump
+        data = project.model_dump(mode="json", exclude_none=False)
+    except Exception as e:
+        raise ValueError(f"Project validation failed: {e}") from e
+
+    # Write JSON with indentation
+    with open(project_json_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+    # Add trailing newline
+    with open(project_json_path, "a", encoding="utf-8") as f:
+        f.write("\n")
+
+
+def update_status(
+    project: Project, step: str, error: Optional[Exception] = None
+) -> None:
+    """
+    Update project status and persist last_error if present.
+
+    Args:
+        project: Project to update
+        step: Current step name
+        error: Exception if step failed, None on success
+    """
+    import traceback
+
+    project.status.current_step = step
+
+    if error is None:
+        # Success: update last_successful_step
+        project.status.last_successful_step = step
+        project.status.last_error = None
+    else:
+        # Failure: persist error details
+        project.status.last_error = LastError(
+            step=step,
+            message=str(error),
+            stack=traceback.format_exc(),
+            at=datetime.now().isoformat(),
+        )
+
