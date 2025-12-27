@@ -33,6 +33,58 @@ def format_timestamp(seconds: float) -> str:
     return f"{minutes:02d}:{secs:02d}"
 
 
+def clean_title(title: str) -> str:
+    """
+    Clean album title by removing track count patterns.
+
+    Args:
+        title: Original title
+
+    Returns:
+        Cleaned title without track count
+    """
+    import re
+    # Remove patterns like "(2 Tracks)", "(25 Tracks)", etc.
+    cleaned = re.sub(r'\s*\(\d+\s+[Tt]racks?\)\s*', '', title)
+    # Clean up extra whitespace
+    cleaned = ' '.join(cleaned.split())
+    return cleaned
+
+
+def add_letter_spacing(text: str) -> str:
+    """
+    Add wide letter spacing by inserting spaces between letters.
+
+    Args:
+        text: Text to process
+
+    Returns:
+        Text with spaces between each letter
+    """
+    # Insert space between each character, but preserve existing spaces
+    # Split by spaces first, then add spacing within each word
+    words = text.split()
+    spaced_words = []
+    for word in words:
+        spaced_word = ' '.join(word)
+        spaced_words.append(spaced_word)
+    return '   '.join(spaced_words)  # Triple space between words
+
+
+def get_channel_title() -> str:
+    """
+    Get channel title from environment or return default.
+
+    Returns:
+        Channel title string
+    """
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
+    channel_title = os.getenv("YOUTUBE_CHANNEL_TITLE", "Music Channel")
+    return channel_title
+
+
 def run(project_id: str) -> None:
     """
     Run the render step.
@@ -128,21 +180,28 @@ def run(project_id: str) -> None:
             log.info("Creating thumbnail with text overlay...")
             thumbnail_path = assets_dir / "thumbnail.png"
             
-            # Get album title and theme for text overlay
+            # Get and process album title
             album_title = "Music Compilation"
             if project.plan and project.plan.youtube_metadata:
                 album_title = project.plan.youtube_metadata.title
             
-            # Use theme as subtitle/prompt
-            subtitle_text = project.theme
+            # Clean title (remove track count) and process
+            cleaned_title = clean_title(album_title)
+            title_uppercase = cleaned_title.upper()
+            title_spaced = add_letter_spacing(title_uppercase)
+            
+            # Get channel title and process
+            channel_title = get_channel_title()
+            channel_uppercase = channel_title.upper()
+            channel_spaced = add_letter_spacing(channel_uppercase)
             
             thumbnail_created = False
             try:
                 ffmpeg.overlay_text_on_image(
                     image_path=background_path,
                     output_path=thumbnail_path,
-                    title=album_title,
-                    subtitle=subtitle_text,
+                    title=title_spaced,
+                    channel_title=channel_spaced,
                     width=project.video.width,
                     height=project.video.height,
                 )

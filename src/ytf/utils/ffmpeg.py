@@ -7,7 +7,7 @@ Provides functions for concatenating audio, normalizing loudness, and creating v
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 
 def check_ffmpeg() -> bool:
@@ -285,22 +285,59 @@ def create_video_from_image_and_audio(
         raise RuntimeError(f"FFmpeg error creating video: {e}") from e
 
 
+def find_cinzel_font(bold: bool = False) -> Optional[str]:
+    """
+    Find Cinzel font file on the system.
+
+    Args:
+        bold: If True, look for Cinzel-Bold, else Cinzel-Regular
+
+    Returns:
+        Path to font file if found, None otherwise
+    """
+    from pathlib import Path
+    
+    font_name = "Cinzel-Bold" if bold else "Cinzel-Regular"
+    search_paths = [
+        Path("/System/Library/Fonts/Supplemental"),
+        Path("/Library/Fonts"),
+        Path.home() / "Library/Fonts",
+        Path("/usr/share/fonts"),
+    ]
+    
+    for search_path in search_paths:
+        if not search_path.exists():
+            continue
+        # Try various extensions
+        for ext in [".ttf", ".otf", ".TTF", ".OTF"]:
+            font_path = search_path / f"{font_name}{ext}"
+            if font_path.exists():
+                return str(font_path)
+        # Also try lowercase
+        for ext in [".ttf", ".otf"]:
+            font_path = search_path / f"{font_name.lower()}{ext}"
+            if font_path.exists():
+                return str(font_path)
+    
+    return None
+
+
 def overlay_text_on_image(
     image_path: Union[str, Path],
     output_path: Union[str, Path],
     title: str,
-    subtitle: str,
+    channel_title: str,
     width: int = 1920,
     height: int = 1080,
 ) -> None:
     """
-    Overlay text on an image using FFmpeg drawtext filter.
+    Overlay text on an image using FFmpeg drawtext filter with Roman inscription styling.
 
     Args:
         image_path: Path to input image
         output_path: Path where to save the output image with text overlay
-        title: Main title text (displayed at top, larger)
-        subtitle: Subtitle text (displayed at bottom, smaller)
+        title: Main title text (already processed with caps and letter spacing)
+        channel_title: Channel title text (already processed with caps and letter spacing)
         width: Image width in pixels (default 1920)
         height: Image height in pixels (default 1080)
 
@@ -308,6 +345,7 @@ def overlay_text_on_image(
         RuntimeError: If FFmpeg fails to overlay text
         FileNotFoundError: If input image doesn't exist
     """
+    from typing import Optional
     image_path = Path(image_path)
     output_path = Path(output_path)
 
@@ -316,50 +354,91 @@ def overlay_text_on_image(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Find Cinzel fonts
+    cinzel_bold = find_cinzel_font(bold=True)
+    cinzel_regular = find_cinzel_font(bold=False)
+    
+    # Fallback to system serif fonts if Cinzel not found
+    if not cinzel_bold:
+        # Try common serif fonts on macOS
+        fallback_fonts = [
+            "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf",
+            "/System/Library/Fonts/Supplemental/Times.ttc",
+            "/System/Library/Fonts/Helvetica.ttc",
+        ]
+        for font in fallback_fonts:
+            if Path(font).exists():
+                cinzel_bold = font
+                break
+    
+    if not cinzel_regular:
+        fallback_fonts = [
+            "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+            "/System/Library/Fonts/Supplemental/Times.ttc",
+            "/System/Library/Fonts/Helvetica.ttc",
+        ]
+        for font in fallback_fonts:
+            if Path(font).exists():
+                cinzel_regular = font
+                break
+
     # Escape special characters for FFmpeg drawtext filter
     def escape_text(text: str) -> str:
         """Escape special characters for FFmpeg drawtext."""
-        # Escape backslashes, colons, and quotes
+        # Escape backslashes, colons, quotes, and equals
         text = text.replace("\\", "\\\\")
         text = text.replace(":", "\\:")
         text = text.replace("'", "\\'")
         text = text.replace('"', '\\"')
+        text = text.replace("=", "\\=")
         return text
 
     title_escaped = escape_text(title)
-    subtitle_escaped = escape_text(subtitle)
+    channel_title_escaped = escape_text(channel_title)
 
-    # Calculate positions
-    # Title: centered horizontally, 20% from top
+    # Calculate positions - centered horizontally
+    # Main title at 66% down, subtitle at 78% down
     title_x = f"(w-text_w)/2"
-    title_y = f"h*0.2"
-    # Subtitle: centered horizontally, 20% from bottom
+    title_y = f"h*0.66"
     subtitle_x = f"(w-text_w)/2"
-    subtitle_y = f"h*0.8"
+    subtitle_y = f"h*0.78"
 
-    # Build drawtext filters
-    # Title: 60px font, white with black outline
+    # Build drawtext filters with Roman inscription styling
+    # Color: #F6F6F0 (warm off-white)
+    # Outline: borderw=2, bordercolor=black@0.25
+    # Shadow: shadowx=2, shadowy=4, shadowcolor=black@0.6
+    
+    # Main title: Cinzel Bold, larger font
+    # Color format: 0xRRGGBB for FFmpeg
+    title_font_file = f":fontfile={cinzel_bold}" if cinzel_bold else ""
     title_filter = (
         f"drawtext=text='{title_escaped}':"
-        f"fontsize=60:"
-        f"fontcolor=white:"
-        f"borderw=3:"
-        f"bordercolor=black:"
+        f"fontsize=75:"
+        f"fontcolor=0xF6F6F0:"
+        f"borderw=2:"
+        f"bordercolor=black@0.25:"
+        f"shadowx=2:"
+        f"shadowy=4:"
+        f"shadowcolor=black@0.6:"
         f"x={title_x}:"
-        f"y={title_y}:"
-        f"fontfile=/System/Library/Fonts/Helvetica.ttc"
+        f"y={title_y}"
+        f"{title_font_file}"
     )
 
-    # Subtitle: 40px font, white with black outline
+    # Subtitle: Cinzel Regular, smaller font
+    subtitle_font_file = f":fontfile={cinzel_regular}" if cinzel_regular else ""
     subtitle_filter = (
-        f"drawtext=text='{subtitle_escaped}':"
-        f"fontsize=40:"
-        f"fontcolor=white:"
+        f"drawtext=text='{channel_title_escaped}':"
+        f"fontsize=55:"
+        f"fontcolor=0xF6F6F0:"
         f"borderw=2:"
-        f"bordercolor=black:"
+        f"bordercolor=black@0.25:"
+        f"shadowx=2:"
+        f"shadowy=4:"
+        f"shadowcolor=black@0.6:"
         f"x={subtitle_x}:"
-        f"y={subtitle_y}:"
-        f"fontfile=/System/Library/Fonts/Helvetica.ttc"
+        f"y={subtitle_y}"
+        f"{subtitle_font_file}"
     )
 
     # Combine filters
@@ -380,22 +459,28 @@ def overlay_text_on_image(
         )
 
         if result.returncode != 0:
-            # Try with fallback font if Helvetica fails
+            # Try without font files if font specification fails
             title_filter_fallback = (
                 f"drawtext=text='{title_escaped}':"
-                f"fontsize=60:"
-                f"fontcolor=white:"
-                f"borderw=3:"
-                f"bordercolor=black:"
+                f"fontsize=75:"
+                f"fontcolor=0xF6F6F0:"
+                f"borderw=2:"
+                f"bordercolor=black@0.25:"
+                f"shadowx=2:"
+                f"shadowy=4:"
+                f"shadowcolor=black@0.6:"
                 f"x={title_x}:"
                 f"y={title_y}"
             )
             subtitle_filter_fallback = (
-                f"drawtext=text='{subtitle_escaped}':"
-                f"fontsize=40:"
-                f"fontcolor=white:"
+                f"drawtext=text='{channel_title_escaped}':"
+                f"fontsize=55:"
+                f"fontcolor=0xF6F6F0:"
                 f"borderw=2:"
-                f"bordercolor=black:"
+                f"bordercolor=black@0.25:"
+                f"shadowx=2:"
+                f"shadowy=4:"
+                f"shadowcolor=black@0.6:"
                 f"x={subtitle_x}:"
                 f"y={subtitle_y}"
             )

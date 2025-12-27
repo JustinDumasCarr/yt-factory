@@ -46,6 +46,8 @@ Goal: go from theme to an Unlisted YouTube upload on macOS using CLI steps.
   - record duration + paths
 - [x] Render integration (FFmpeg):
   - use all available tracks (status==ok)
+  - generate background images with Gemini
+  - create thumbnails with text overlay
   - loudness normalize
   - mux static image to MP4
   - generate chapters

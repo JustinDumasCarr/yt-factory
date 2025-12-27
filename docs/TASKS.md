@@ -62,6 +62,10 @@ Legend:
   - Acceptance: produces `output/final.mp4` at 1080p 30fps
 - [x] Generate chapters and description files
   - Acceptance: `output/chapters.txt` and `output/youtube_description.txt` exist
+- [x] Implement background image generation with Gemini
+  - Acceptance: generates theme-appropriate background using Gemini 2.5 Flash Image API, falls back to default if fails
+- [x] Implement thumbnail creation with text overlay
+  - Acceptance: creates `assets/thumbnail.png` with album title and theme text overlaid
 
 ### G . YouTube upload
 - [ ] Implement OAuth token caching
