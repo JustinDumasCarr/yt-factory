@@ -82,9 +82,11 @@ Goal: stop babysitting the pipeline.
   - channel profiles with defaults and constraints
   - funnel outputs (templated descriptions + pinned comments)
   - review/QC step with reports
-- [ ] Batch mode:
-  - run N projects sequentially
-  - optional concurrency limits for generation
+- [x] Batch mode:
+  - [x] run N projects sequentially
+  - [x] `ytf run` command for single-project pipeline execution
+  - [x] `ytf batch` command with batch summary output
+  - [x] retry logic for transient errors in batch context
 - [ ] Improved logs:
   - structured JSON logs optional
   - clear error summaries

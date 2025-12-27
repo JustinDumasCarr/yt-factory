@@ -4,15 +4,19 @@ CLI entry point using Typer.
 Commands:
 - new: Create a new project
 - doctor: Validate prerequisites
-- plan: Generate planning data (skeleton in Sprint 1)
-- generate: Generate music tracks (skeleton in Sprint 1)
-- render: Render final video (skeleton in Sprint 1)
-- upload: Upload to YouTube (skeleton in Sprint 1)
+- plan: Generate planning data
+- generate: Generate music tracks
+- review: Run quality control checks
+- render: Render final video
+- upload: Upload to YouTube
+- run: Run pipeline steps sequentially for a project
+- batch: Create and run multiple projects in batch
 """
 
 import typer
 
 from ytf import doctor
+from ytf import runner
 from ytf.steps import generate, new, plan, render, review, upload
 
 app = typer.Typer(help="yt-factory: Local-first automation pipeline for music compilations")
@@ -74,6 +78,38 @@ def render_cmd(project_id: str = typer.Argument(..., help="Project ID")) -> None
 def upload_cmd(project_id: str = typer.Argument(..., help="Project ID")) -> None:
     """Upload to YouTube (not implemented yet in Sprint 1)."""
     upload.run(project_id)
+
+
+@app.command(name="run")
+def run_cmd(
+    project_id: str = typer.Argument(..., help="Project ID"),
+    to_step: str = typer.Option("upload", "--to", help="Target step to run up to (plan, generate, review, render, upload)"),
+    from_step: str = typer.Option(None, "--from", help="Starting step (default: infer from project status)"),
+) -> None:
+    """Run pipeline steps sequentially for a project."""
+    runner.run_project(project_id, to_step=to_step, from_step=from_step)
+    typer.echo(f"Completed running steps up to: {to_step}")
+
+
+@app.command(name="batch")
+def batch_cmd(
+    channel: str = typer.Option(..., "--channel", "-c", help="Channel ID (e.g., cafe_jazz, fantasy_tavern)"),
+    count: int = typer.Option(..., "--count", "-n", help="Number of projects to create"),
+    mode: str = typer.Option("full", "--mode", "-m", help="Target mode: full, render, generate, plan, review, upload"),
+    theme: str = typer.Option("Batch Project", "--theme", "-t", help="Base theme (will be suffixed with index)"),
+) -> None:
+    """Create and run multiple projects in batch."""
+    summary = runner.run_batch(
+        channel_id=channel,
+        count=count,
+        mode=mode,
+        base_theme=theme,
+    )
+    
+    typer.echo(f"Batch completed: {summary['batch_id']}")
+    typer.echo(f"Successful: {summary['successful']}/{summary['total_projects']}")
+    typer.echo(f"Failed: {summary['failed']}/{summary['total_projects']}")
+    typer.echo(f"Summary saved to: projects/{summary['batch_id']}_summary.json")
 
 if __name__ == "__main__":
     app()

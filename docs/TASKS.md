@@ -103,16 +103,18 @@ Legend:
   - [x] Generate `qc_report.json` and `qc_report.txt`
   - [x] Honor `approved.txt` and `rejected.txt`
   - Acceptance: review step runs between generate and render, persists QC results
-- [ ] Retry/backoff wrapper for all HTTP calls
-  - Acceptance: transient errors don't crash step immediately
-- [ ] `ytf run <id>` convenience command
-  - Runs plan -> generate -> review -> render -> upload
-  - Acceptance: stops at failed step and leaves good logs
+- [x] Retry/backoff wrapper for batch mode
+  - Acceptance: retry logic applied to plan/generate/upload steps in batch context, transient errors retried with exponential backoff
+- [x] `ytf run <id>` convenience command
+  - Runs plan -> generate -> review -> render -> upload (or up to --to step)
+  - Acceptance: stops at failed step and leaves good logs, skips upload if already uploaded
+- [x] `ytf batch` command
+  - Creates N projects and runs them sequentially
+  - Acceptance: generates batch_summary.json with per-project outcomes, never hides failures
 
 ---
 
 ## Later (optional)
-- [ ] Batch mode: generate/render/upload multiple projects from a queue folder
 - [ ] Runway 10s intro slot
 - [ ] Creatomate title card clip
 - [ ] StorageAdapter + S3

@@ -79,3 +79,43 @@ Outputs:
 - resumable upload
 - apply metadata and upload settings
 - record returned video ID in `project.json`
+- Idempotent: if `project.json.youtube.video_id` exists, skips upload
+
+## Runner commands
+
+### `ytf run <project_id> --to <step>`
+Run pipeline steps sequentially for a project:
+- Automatically determines starting point from `project.status.last_successful_step`
+- Runs steps up to `--to` (default: `upload`)
+- Stops immediately on failure (error persisted by step module)
+- Skips upload if `project.youtube.video_id` already exists
+
+Example:
+```bash
+ytf run 20251227_211203_test-channel-workflow --to render
+```
+
+### `ytf batch --channel <id> --count N --mode <mode>`
+Create and run multiple projects in batch:
+- Creates N projects for the specified channel
+- Runs each project sequentially up to the target step
+- Applies retry logic for transient errors (plan, generate, upload steps)
+- Writes `projects/<batch_id>_summary.json` with per-project outcomes
+
+Modes:
+- `full`: run all steps up to upload
+- `render`: run up to render
+- `generate`: run up to generate
+- `plan`: run up to plan
+- `review`: run up to review
+- `upload`: run up to upload
+
+Example:
+```bash
+ytf batch --channel cafe_jazz --count 3 --mode full --theme "Evening Jazz"
+```
+
+Batch summary includes:
+- Total projects, successful/failed counts
+- Per-project: project_id, last_successful_step, failed_step, error_message, youtube_video_id
+- Start/end timestamps
