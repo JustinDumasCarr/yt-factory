@@ -3,6 +3,8 @@
 This file tracks implementation status at a milestone level.
 Granular work lives in `docs/TASKS.md`.
 
+If you're an LLM/agent, start at `AGENTS.md` (repo rulebook + doc router), then come here only for milestone status.
+
 Legend:
 - [ ] not started
 - [~] in progress
@@ -19,7 +21,7 @@ Goal: repo has the structure and docs needed to implement cleanly.
   - src/
   - projects/ (gitignored)
 - [ ] Add `.env.example` (optional, documented in README)
-- [x] Add `.cursorrules`
+- [x] Add `AGENTS.md` (agent rulebook + doc router)
 - [x] Add baseline docs (overview, workflow, schema, logging)
 
 Exit criteria:

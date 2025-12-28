@@ -89,4 +89,4 @@ Primary goals:
 ## Documentation
 
 Docs live in `docs/`.
-Start with `docs/00_OVERVIEW.md` and `docs/01_WORKFLOW.md`.
+Start with `AGENTS.md`, then `docs/00_OVERVIEW.md` and `docs/01_WORKFLOW.md`.

@@ -3,6 +3,8 @@
 This is the short-term execution list.
 Keep "Now" to 10-20 items max so it stays actionable.
 
+If you're an LLM/agent, start at `AGENTS.md` (repo rulebook + doc router), then come here for the next actionable work.
+
 Legend:
 - [ ] not started
 - [~] in progress
