@@ -148,8 +148,31 @@ def cmd_done(tasks_file: Path, task_id: str, force: bool) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+
+    # Accept --file in either position:
+    # - python -m ytf.tools.tasks --file docs/TASKS.md next
+    # - python -m ytf.tools.tasks next --file docs/TASKS.md
+    tasks_file_arg = "docs/TASKS.md"
+    cleaned: list[str] = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--file":
+            if i + 1 >= len(argv):
+                print("error: --file requires a value", file=sys.stderr)
+                return 2
+            tasks_file_arg = argv[i + 1]
+            i += 2
+            continue
+        if a.startswith("--file="):
+            tasks_file_arg = a.split("=", 1)[1]
+            i += 1
+            continue
+        cleaned.append(a)
+        i += 1
+
     parser = argparse.ArgumentParser(prog="python -m ytf.tools.tasks")
-    parser.add_argument("--file", default="docs/TASKS.md", help="Path to TASKS.md")
 
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("next", help="Print the first unchecked task id (T###)")
@@ -161,8 +184,8 @@ def main(argv: list[str] | None = None) -> int:
     p_done.add_argument("task_id", help="Task id like T001")
     p_done.add_argument("--force", action="store_true", help="Allow editing TASKS.md to mark task done")
 
-    args = parser.parse_args(argv)
-    tasks_file = Path(args.file)
+    args = parser.parse_args(cleaned)
+    tasks_file = Path(tasks_file_arg)
 
     if args.cmd == "next":
         return cmd_next(tasks_file)
