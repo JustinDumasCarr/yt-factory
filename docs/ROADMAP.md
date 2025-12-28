@@ -132,5 +132,16 @@ Goal: run anywhere and store assets off your laptop.
 - [ ] Simple monitoring:
   - failure notifications (email/discord) optional
 
+
 Exit criteria:
 - Pipeline runs on a server and stores outputs remotely.
+
+## Later ideas (not in execution queue)
+
+These are intentionally not in `docs/TASKS.md` until we pull them into **Now**.
+
+- Runway 10s intro slot
+- Creatomate title card clip
+- StorageAdapter + S3
+- Docker packaging for server runs
+- Minimal GUI wrapper (FastAPI or Streamlit)
