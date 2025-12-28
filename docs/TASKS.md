@@ -134,3 +134,6 @@ Legend:
   - Verify: make test
 - [ ] T005 Minimal GUI wrapper (FastAPI or Streamlit)
   - Verify: make test
+- [x] T006 Roman inscription thumbnail text
+  - Verify: grep -q "find_cinzel_font" src/ytf/utils/ffmpeg.py
+  - Verify: grep -q "add_letter_spacing" src/ytf/steps/render.py

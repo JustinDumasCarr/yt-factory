@@ -31,20 +31,20 @@ doctor:
 # ---- Task workflow ----
 .PHONY: next
 next:
-	@$(PY_ENV) $(PY) -m ytf.tools.tasks next --file "$(TASKS_FILE)"
+	@$(PY_ENV) $(PY) -m ytf.tools.tasks --file "$(TASKS_FILE)" next
 
 .PHONY: verify
 verify:
 	@if [ -z "$(TASK)" ]; then echo "Usage: make verify TASK=T001"; exit 2; fi
-	@$(PY_ENV) $(PY) -m ytf.tools.tasks verify "$(TASK)" --file "$(TASKS_FILE)"
+	@$(PY_ENV) $(PY) -m ytf.tools.tasks --file "$(TASKS_FILE)" verify "$(TASK)"
 
 .PHONY: done
 done:
 	@if [ -z "$(TASK)" ]; then echo "Usage: make done TASK=T001 [FORCE=1]"; exit 2; fi
 	@if [ "$(FORCE)" = "1" ]; then \
-		$(PY_ENV) $(PY) -m ytf.tools.tasks done "$(TASK)" --file "$(TASKS_FILE)" --force; \
+		$(PY_ENV) $(PY) -m ytf.tools.tasks --file "$(TASKS_FILE)" done "$(TASK)" --force; \
 	else \
-		$(PY_ENV) $(PY) -m ytf.tools.tasks done "$(TASK)" --file "$(TASKS_FILE)"; \
+		$(PY_ENV) $(PY) -m ytf.tools.tasks --file "$(TASKS_FILE)" done "$(TASK)"; \
 	fi
 
 
