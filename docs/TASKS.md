@@ -124,16 +124,7 @@ Legend:
 ---
 
 ## Later (optional)
-- [ ] T001 Runway 10s intro slot
-  - Verify: make test
-- [ ] T002 Creatomate title card clip
-  - Verify: make test
-- [ ] T003 StorageAdapter + S3
-  - Verify: make test
-- [ ] T004 Docker packaging for server runs
-  - Verify: make test
-- [ ] T005 Minimal GUI wrapper (FastAPI or Streamlit)
-  - Verify: make test
 - [x] T006 Roman inscription thumbnail text
+  - Verify: make test
   - Verify: grep -q "find_cinzel_font" src/ytf/utils/ffmpeg.py
   - Verify: grep -q "add_letter_spacing" src/ytf/steps/render.py

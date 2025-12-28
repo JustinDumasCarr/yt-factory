@@ -134,3 +134,15 @@ Goal: run anywhere and store assets off your laptop.
 
 Exit criteria:
 - Pipeline runs on a server and stores outputs remotely.
+
+---
+
+## Later ideas
+
+Tasks that may be implemented in the future:
+
+- T001 Runway 10s intro slot
+- T002 Creatomate title card clip
+- T003 StorageAdapter + S3
+- T004 Docker packaging for server runs
+- T005 Minimal GUI wrapper (FastAPI or Streamlit)
