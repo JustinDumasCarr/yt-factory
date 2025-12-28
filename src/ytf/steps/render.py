@@ -72,20 +72,6 @@ def add_letter_spacing(text: str) -> str:
     return '   '.join(spaced_words)  # Triple space between words
 
 
-def get_channel_title() -> str:
-    """
-    Get channel title from environment or return default.
-
-    Returns:
-        Channel title string
-    """
-    import os
-    from dotenv import load_dotenv
-    load_dotenv()
-    channel_title = os.getenv("YOUTUBE_CHANNEL_TITLE", "Music Channel")
-    return channel_title
-
-
 def run(project_id: str) -> None:
     """
     Run the render step.
@@ -305,14 +291,13 @@ def run(project_id: str) -> None:
             title_uppercase = cleaned_title.upper()
             title_spaced = add_letter_spacing(title_uppercase)
             
-            # Get channel title and process
-            # Use channel.name from config if available, otherwise fall back to env var or default
+            # T006: Get channel title and process (omit subtitle if no channel configured)
+            # Subtitle comes from channel.name or is omitted entirely
+            channel_spaced = None
             if channel and channel.name:
                 channel_title = channel.name
-            else:
-                channel_title = get_channel_title()
-            channel_uppercase = channel_title.upper()
-            channel_spaced = add_letter_spacing(channel_uppercase)
+                channel_uppercase = channel_title.upper()
+                channel_spaced = add_letter_spacing(channel_uppercase)
             
             # Get thumbnail style from channel config
             thumbnail_style = None

@@ -124,7 +124,7 @@ Legend:
 ---
 
 ## Later (optional)
-- [x] T006 Roman inscription thumbnail text
+- [ ] T006 Roman inscription thumbnail text
   - Verify: make test
   - Verify: grep -q "find_cinzel_font" src/ytf/utils/ffmpeg.py
   - Verify: grep -q "add_letter_spacing" src/ytf/steps/render.py
