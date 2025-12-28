@@ -124,8 +124,13 @@ Legend:
 ---
 
 ## Later (optional)
-- [ ] Runway 10s intro slot
-- [ ] Creatomate title card clip
-- [ ] StorageAdapter + S3
-- [ ] Docker packaging for server runs
-- [ ] Minimal GUI wrapper (FastAPI or Streamlit)
+- [ ] T001 Runway 10s intro slot
+  - Verify: make test
+- [ ] T002 Creatomate title card clip
+  - Verify: make test
+- [ ] T003 StorageAdapter + S3
+  - Verify: make test
+- [ ] T004 Docker packaging for server runs
+  - Verify: make test
+- [ ] T005 Minimal GUI wrapper (FastAPI or Streamlit)
+  - Verify: make test

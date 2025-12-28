@@ -4,7 +4,7 @@ This repo is a **local-first Python CLI** project called **yt-factory**.
 
 If you are an LLM/agent: **read this file first**, follow its rules, then open the linked docs only when you need deeper details.
 
-Note: This file is the single source of truth for agent rules in this repo (we intentionally do not rely on `.cursorrules`).
+Note: This file is the only source of truth for agent rules in this repo (we intentionally do not rely on `.cursorrules`).
 
 ---
 
@@ -27,6 +27,29 @@ Note: This file is the single source of truth for agent rules in this repo (we i
 
 ---
 
+## Task execution protocol (required)
+
+Unless explicitly instructed otherwise, do the following:
+
+1) Open `docs/TASKS.md`
+2) Select the **first unchecked task** (`- [ ]`) in order
+3) Implement only that task
+4) Run all Verify commands listed for the task
+5) If verification passes:
+   - Mark the task as completed (`[x]`)
+   - Open a PR with the task ID in the title
+6) If verification fails:
+   - Do NOT mark the task complete
+   - Fix or report failure clearly in the PR description
+
+Do not skip tasks.
+Do not combine multiple tasks in one PR unless explicitly instructed.
+
+Preferred interface (when available):
+- Use `make next`, `make verify TASK=T###`, and `make done TASK=T### FORCE=1` to drive the loop.
+
+---
+
 ## Code structure rules
 - Keep modules small and boring: **one file per step** under `src/ytf/steps/`.
 - Providers are isolated under `src/ytf/providers/`:
@@ -42,6 +65,26 @@ When anything fails:
   - `step`, `message`, `stack`, `at` (and if available: `kind`, `provider`, `raw`)
 - Ensure the step log contains the full traceback.
 - Do **not** delete partial outputs; keep them for debugging and resuming.
+
+---
+
+## Definition of Done (strict)
+
+A task is considered done ONLY if:
+- All its listed Verify commands succeed
+- `project.json` validation passes
+- No core invariants are violated
+- TASKS.md is updated in the same PR
+
+If any Verify command fails, the task is NOT done.
+
+---
+## Canonical verification command
+
+Preferred verification entrypoint:
+- `make test`
+
+If task-specific verification exists, it will be listed in TASKS.md.
 
 ---
 
@@ -66,6 +109,7 @@ When anything fails:
 ### Planning work (what to do next)
 - `docs/ROADMAP.md`: **milestone-level outcomes** (where we’re heading / what’s shipped)
 - `docs/TASKS.md`: **short-term execution list** (what we’re doing next; keep it small and actionable)
+- `docs/DECISIONS.md`: why decisions were made (prevents rework and re-arguing)
 
 ---
 
