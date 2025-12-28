@@ -169,19 +169,31 @@ class Track(BaseModel):
     """Generated track metadata (one per variant)."""
 
     track_index: int  # Final track index (0-based, sequential across all variants)
-    title: str  # Track title (e.g., "Whispering Scrolls I" or "Whispering Scrolls II")
-    style: str  # Music style/genre
+    title: Optional[str] = None  # Track title (e.g., "Whispering Scrolls I" or "Whispering Scrolls II")
+    style: Optional[str] = None  # Music style/genre
     prompt: str  # Musical description
     provider: str = "suno"
     job_id: Optional[str] = None  # Suno job ID (shared across both variants from same job)
-    job_index: int  # Which planned job this came from (0-based)
-    variant_index: int  # Which variant (0 or 1) from the job
+    job_index: Optional[int] = None  # Which planned job this came from (0-based)
+    variant_index: Optional[int] = None  # Which variant (0 or 1) from the job
     audio_url: Optional[str] = None  # Last known audio URL for resume
     audio_path: Optional[str] = None
     duration_seconds: float = 0.0
     status: TrackStatusType = "ok"
     error: Optional[TrackError] = None
     qc: Optional[TrackQC] = None
+    
+    @model_validator(mode='after')
+    def fill_missing_fields_from_plan(self):
+        """Fill missing title/style/job_index/variant_index for backwards compatibility."""
+        # For old projects without these fields, infer from track_index
+        # Old behavior: each track_index was a separate job, so job_index = track_index, variant_index = 0
+        if self.job_index is None:
+            self.job_index = self.track_index
+        if self.variant_index is None:
+            self.variant_index = 0
+        # Title and style will be filled from plan prompts if available during render
+        return self
 
 
 class RenderData(BaseModel):

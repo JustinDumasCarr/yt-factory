@@ -474,12 +474,14 @@ def overlay_text_on_image(
     # This ensures text never touches edges even with font metric variations
     ffmpeg_margin = 10  # 10px margin for clamping (accounts for border 2px*2 + shadow 2px + buffer)
     
-    # Clamp x position to ensure text stays within bounds:
-    # - Never starts before margin (left edge)
-    # - Never extends beyond w - text_w - margin (right edge)
-    # - Still centers when possible, but clamps when needed
-    # Formula: max(margin, min(w-text_w-margin, (w-text_w)/2))
-    clamped_x_expr = f"max({ffmpeg_margin}, min(w-text_w-{ffmpeg_margin}, (w-text_w)/2))"
+    # Clamp x position to ensure text stays within bounds
+    # FFmpeg's max/min functions use commas which conflict with filter chain separators
+    # Solution: Use if/else expressions with escaped commas, or simplify to centering
+    # Since we've improved the width calculation to ensure text fits, we can use simple centering
+    # with a safety margin check using if/else
+    # Formula: if text would overflow left, use margin; if it would overflow right, use w-text_w-margin; else center
+    # Using escaped commas to prevent filter chain parsing issues
+    clamped_x_expr = f"if(lt((w-text_w)/2\\,{ffmpeg_margin})\\,{ffmpeg_margin}\\,if(gt((w-text_w)/2\\,w-text_w-{ffmpeg_margin})\\,w-text_w-{ffmpeg_margin}\\,(w-text_w)/2))"
     
     if layout_variant == "centered_title":
         # Both centered, title at 50%, subtitle at 60%
@@ -511,6 +513,9 @@ def overlay_text_on_image(
     # For now, we focus on font, size, color, and position customization
     
     # Main title: dynamically sized font with channel styling
+    # Note: x and y expressions must be properly formatted for FFmpeg
+    # When using expressions with commas (like max(10, min(...))), we need to ensure
+    # the filter chain is properly separated
     title_font_file = f":fontfile={title_font_file_path}" if title_font_file_path else ""
     title_filter = (
         f"drawtext=text='{title_escaped}':"
@@ -542,7 +547,9 @@ def overlay_text_on_image(
         f"{subtitle_font_file}"
     )
 
-    # Combine filters
+    # Combine filters - use semicolon to separate complex filter chains if needed
+    # But comma should work for simple chains. The issue might be with expression parsing.
+    # Let's try wrapping the x expression in parentheses or using a different approach
     filter_complex = f"{title_filter},{subtitle_filter}"
 
     try:
