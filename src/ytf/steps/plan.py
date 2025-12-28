@@ -138,11 +138,15 @@ def run(project_id: str) -> None:
             max_retries = 2
             youtube_metadata = None
             
+            # Build channel constraints text for metadata generation
+            channel_constraints_text = f"{banned_terms_text}{style_guidance_text}{energy_text}"
+            
             for attempt in range(max_retries + 1):
                 try:
                     metadata_dict = provider.generate_youtube_metadata(
                         theme=project.theme,
                         track_count=project.track_count,
+                        channel_constraints=channel_constraints_text,
                     )
                     candidate_metadata = YouTubeMetadata(
                         title=metadata_dict["title"],

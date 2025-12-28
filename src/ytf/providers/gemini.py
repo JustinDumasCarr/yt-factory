@@ -223,7 +223,7 @@ Return only the lyrics text, no explanations. Use [Verse], [Chorus] tags if need
             raise RuntimeError(f"Gemini API error generating lyrics: {e} | Raw: {raw_error}") from e
 
     def generate_youtube_metadata(
-        self, theme: str, track_count: int
+        self, theme: str, track_count: int, channel_constraints: str = ""
     ) -> dict[str, Any]:
         """
         Generate YouTube video metadata (title, description, tags).
@@ -231,6 +231,7 @@ Return only the lyrics text, no explanations. Use [Verse], [Chorus] tags if need
         Args:
             theme: Project theme
             track_count: Number of tracks
+            channel_constraints: Optional channel-specific constraints and formatting rules
 
         Returns:
             Dict with keys: 'title', 'description', 'tags' (list)
@@ -243,10 +244,18 @@ Return only the lyrics text, no explanations. Use [Verse], [Chorus] tags if need
 Theme: {theme}
 Number of tracks: {track_count}
 
+IMPORTANT - Title format: The title must be structured as:
+"[Descriptive/evocative part] | [Theme]"
+
+Example: "Ancient Scrolls & Forest Whispers | Fantasy Reading Ambience"
+NOT: "Fantasy Reading Ambience: Ancient Scrolls & Forest Whispers | Study Music"
+
+The descriptive part should be creative and evocative (2-6 words). The theme part should be the compilation theme.
+
 Generate:
-1. A compelling title (under 100 characters)
+1. A compelling title (under 100 characters) following the format above
 2. A description (include placeholder for chapters: "Chapters:\\n00:00 Track 1\\n...")
-3. Relevant tags (array of strings, 5-10 tags)
+3. Relevant tags (array of strings, 5-10 tags){channel_constraints}
 
 Return JSON: {{"title": "...", "description": "...", "tags": [...]}}
 Make sure the JSON is valid and parseable."""

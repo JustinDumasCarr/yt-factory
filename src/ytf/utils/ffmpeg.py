@@ -413,22 +413,34 @@ def overlay_text_on_image(
     title_escaped = escape_text(title)
     channel_title_escaped = escape_text(channel_title)
 
-    # Calculate dynamic font sizes based on text length and channel config
-    # Leave margins: 100px on each side (200px total)
-    available_width = width - 200
+    # Extract border and shadow values as constants
+    # These affect the actual rendered width and must be accounted for
+    border_width = 2  # borderw=2 adds 2px on each side = 4px total
+    shadow_x = 2  # shadowx=2 extends the rendered width by 2px
+    shadow_y = 4  # shadowy=4 (vertical, doesn't affect width calculation)
+    
+    # Calculate safe margins accounting for border and shadow
+    # Base margin: 100px on each side
+    # Additional: border (2px * 2 = 4px) + shadow (2px) = 6px per side
+    # Total: 106px margin on each side = 212px total
+    margin_per_side = 106
+    available_width = width - (margin_per_side * 2)
     
     # Get font sizes from thumbnail_style if provided, otherwise calculate
     if thumbnail_style and hasattr(thumbnail_style, "font_size_title") and thumbnail_style.font_size_title:
         title_font_size = thumbnail_style.font_size_title
     else:
-        # Estimate character width: with letter spacing, each character is roughly 1.2x font size
+        # Estimate character width: with letter spacing, each character is roughly 1.15x font size
+        # Use 1.15x instead of 1.2x for more conservative estimation (accounts for font variations)
         # For title: start with 75px, scale down if needed
         title_base_size = 75
         title_char_count = len(title)
-        # Approximate: with spacing, width ≈ char_count * fontsize * 1.2
-        title_estimated_width = title_char_count * title_base_size * 1.2
+        # Account for border (2px * 2 = 4px) and shadow (2px) in width estimation
+        # Approximate: with spacing, width ≈ (char_count * fontsize * 1.15) + (borderw * 2) + abs(shadowx)
+        title_estimated_width = (title_char_count * title_base_size * 1.15) + (border_width * 2) + abs(shadow_x)
         if title_estimated_width > available_width:
-            title_font_size = int((available_width / title_char_count) / 1.2)
+            # Calculate font size that fits: (available_width - border - shadow) / (char_count * 1.15)
+            title_font_size = int((available_width - (border_width * 2) - abs(shadow_x)) / (title_char_count * 1.15))
             title_font_size = max(30, title_font_size)  # Minimum 30px
         else:
             title_font_size = title_base_size
@@ -439,9 +451,11 @@ def overlay_text_on_image(
         # For subtitle: start with 55px, scale down if needed
         subtitle_base_size = 55
         subtitle_char_count = len(channel_title)
-        subtitle_estimated_width = subtitle_char_count * subtitle_base_size * 1.2
+        # Account for border and shadow in width estimation
+        subtitle_estimated_width = (subtitle_char_count * subtitle_base_size * 1.15) + (border_width * 2) + abs(shadow_x)
         if subtitle_estimated_width > available_width:
-            subtitle_font_size = int((available_width / subtitle_char_count) / 1.2)
+            # Calculate font size that fits: (available_width - border - shadow) / (char_count * 1.15)
+            subtitle_font_size = int((available_width - (border_width * 2) - abs(shadow_x)) / (subtitle_char_count * 1.15))
             subtitle_font_size = max(25, subtitle_font_size)  # Minimum 25px
         else:
             subtitle_font_size = subtitle_base_size
@@ -456,23 +470,34 @@ def overlay_text_on_image(
     if thumbnail_style and hasattr(thumbnail_style, "layout_variant"):
         layout_variant = thumbnail_style.layout_variant
     
+    # FFmpeg clamping margin: accounts for border + shadow + safety buffer
+    # This ensures text never touches edges even with font metric variations
+    ffmpeg_margin = 10  # 10px margin for clamping (accounts for border 2px*2 + shadow 2px + buffer)
+    
+    # Clamp x position to ensure text stays within bounds:
+    # - Never starts before margin (left edge)
+    # - Never extends beyond w - text_w - margin (right edge)
+    # - Still centers when possible, but clamps when needed
+    # Formula: max(margin, min(w-text_w-margin, (w-text_w)/2))
+    clamped_x_expr = f"max({ffmpeg_margin}, min(w-text_w-{ffmpeg_margin}, (w-text_w)/2))"
+    
     if layout_variant == "centered_title":
         # Both centered, title at 50%, subtitle at 60%
-        title_x = f"(w-text_w)/2"
+        title_x = clamped_x_expr
         title_y = f"h*0.50"
-        subtitle_x = f"(w-text_w)/2"
+        subtitle_x = clamped_x_expr
         subtitle_y = f"h*0.60"
     elif layout_variant == "bottom_title":
         # Title at bottom, subtitle above it
-        title_x = f"(w-text_w)/2"
+        title_x = clamped_x_expr
         title_y = f"h*0.85"
-        subtitle_x = f"(w-text_w)/2"
+        subtitle_x = clamped_x_expr
         subtitle_y = f"h*0.75"
     else:  # big_title_small_subtitle (default)
         # Main title at 66% down, subtitle at 78% down
-        title_x = f"(w-text_w)/2"
+        title_x = clamped_x_expr
         title_y = f"h*0.66"
-        subtitle_x = f"(w-text_w)/2"
+        subtitle_x = clamped_x_expr
         subtitle_y = f"h*0.78"
     
     # Override position if explicitly set in thumbnail_style
@@ -491,10 +516,10 @@ def overlay_text_on_image(
         f"drawtext=text='{title_escaped}':"
         f"fontsize={title_font_size}:"
         f"fontcolor={text_color}:"
-        f"borderw=2:"
+        f"borderw={border_width}:"
         f"bordercolor=black@0.25:"
-        f"shadowx=2:"
-        f"shadowy=4:"
+        f"shadowx={shadow_x}:"
+        f"shadowy={shadow_y}:"
         f"shadowcolor=black@0.6:"
         f"x={title_x}:"
         f"y={title_y}"
@@ -507,10 +532,10 @@ def overlay_text_on_image(
         f"drawtext=text='{channel_title_escaped}':"
         f"fontsize={subtitle_font_size}:"
         f"fontcolor={text_color}:"
-        f"borderw=2:"
+        f"borderw={border_width}:"
         f"bordercolor=black@0.25:"
-        f"shadowx=2:"
-        f"shadowy=4:"
+        f"shadowx={shadow_x}:"
+        f"shadowy={shadow_y}:"
         f"shadowcolor=black@0.6:"
         f"x={subtitle_x}:"
         f"y={subtitle_y}"
@@ -536,15 +561,15 @@ def overlay_text_on_image(
 
         if result.returncode != 0:
             # Try without font files if font specification fails
-            # Use the same dynamically calculated font sizes
+            # Use the same dynamically calculated font sizes and clamping expressions
             title_filter_fallback = (
                 f"drawtext=text='{title_escaped}':"
                 f"fontsize={title_font_size}:"
                 f"fontcolor=0xF6F6F0:"
-                f"borderw=2:"
+                f"borderw={border_width}:"
                 f"bordercolor=black@0.25:"
-                f"shadowx=2:"
-                f"shadowy=4:"
+                f"shadowx={shadow_x}:"
+                f"shadowy={shadow_y}:"
                 f"shadowcolor=black@0.6:"
                 f"x={title_x}:"
                 f"y={title_y}"
@@ -553,10 +578,10 @@ def overlay_text_on_image(
                 f"drawtext=text='{channel_title_escaped}':"
                 f"fontsize={subtitle_font_size}:"
                 f"fontcolor=0xF6F6F0:"
-                f"borderw=2:"
+                f"borderw={border_width}:"
                 f"bordercolor=black@0.25:"
-                f"shadowx=2:"
-                f"shadowy=4:"
+                f"shadowx={shadow_x}:"
+                f"shadowy={shadow_y}:"
                 f"shadowcolor=black@0.6:"
                 f"x={subtitle_x}:"
                 f"y={subtitle_y}"
