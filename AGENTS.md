@@ -29,24 +29,40 @@ Note: This file is the only source of truth for agent rules in this repo (we int
 
 ## Task execution protocol (required)
 
-Unless explicitly instructed otherwise, do the following:
+This repo uses a company-wide agent system with ClickUp as the execution queue.
 
-1) Open `docs/TASKS.md`
-2) Select the **first unchecked task** (`- [ ]`) in order
-3) Implement only that task
-4) Run all Verify commands listed for the task
-5) If verification passes:
-   - Mark the task as completed (`[x]`)
-   - (Optional) If you are using a GitHub workflow, open a PR with the task ID in the title
-6) If verification fails:
-   - Do NOT mark the task complete
-   - (Optional) If you are using a GitHub workflow, fix or report failure clearly in the PR description
+### Source of truth
+- Tasks are selected from ClickUp only.
+- `docs/TASKS.md` is an archive/reference and MUST NOT be used as the execution queue.
 
-Do not skip tasks.
-Do not combine multiple tasks in one PR unless explicitly instructed.
+### Eligibility (agent may start work only if ALL are true)
+- Task is in a ClickUp Folder whose name starts with: `Execution –`
+- Task is in a ClickUp List named exactly: `Execution`
+- Task status is exactly: `READY`
+- Task body includes: Goal, Scope/Allowed, Acceptance Criteria, Verify commands
 
-Preferred interface (when available):
-- Use `make next`, `make verify TASK=T###`, and `make done TASK=T### FORCE=1` to drive the loop.
+If any requirement is missing:
+- Comment what is missing
+- Move task to `SPEC NEEDED`
+- Stop
+
+### Workflow
+1) Pull the next eligible task from ClickUp (highest priority, then oldest).
+2) Create a branch named: `task/<TASK_ID>` (or `clickup/<TASK_ID>`)
+3) Implement ONLY what the task requests (no scope creep).
+4) Run all Verify commands exactly as written.
+5) If Verify passes:
+   - Open a PR titled: `<TASK_ID> <short title>`
+   - Move task to `NEEDS REVIEW`
+   - Paste verification output in the PR description or task comment
+6) If Verify fails after 3 attempts:
+   - Paste logs/output
+   - Move task to `BLOCKED`
+   - Stop
+
+### Local verification
+Preferred verification entrypoint:
+- `make test`
 
 ---
 
