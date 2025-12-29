@@ -48,7 +48,7 @@ If any requirement is missing:
 
 ### Workflow
 1) Pull the next eligible task from ClickUp (highest priority, then oldest).
-2) Create a branch named: `task/<TASK_ID>` (or `clickup/<TASK_ID>`)
+2) Create a branch named: `task/<TASK_ID>` (or `clickup/<TASK_ID>`).
 3) Implement ONLY what the task requests (no scope creep).
 4) Run all Verify commands exactly as written.
 5) If Verify passes:

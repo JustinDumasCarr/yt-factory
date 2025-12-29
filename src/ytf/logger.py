@@ -121,12 +121,21 @@ class StepLogger:
         
         formatted = self._format_message(level, message, merged_context if merged_context else None)
 
-        # Write to console
-        print(formatted, file=sys.stdout)
+        # Write to console (always newline-terminated + flushed to avoid concatenation)
+        if not formatted.endswith("\n"):
+            formatted_line = formatted + "\n"
+        else:
+            formatted_line = formatted
+        sys.stdout.write(formatted_line)
+        sys.stdout.flush()
 
         # Write to text log file if open
         if self.log_file:
-            self.log_file.write(formatted + "\n")
+            # Ensure newline termination in file as well (defensive).
+            if not formatted.endswith("\n"):
+                self.log_file.write(formatted + "\n")
+            else:
+                self.log_file.write(formatted)
             self.log_file.flush()
         
         # Write to JSON log file if enabled
