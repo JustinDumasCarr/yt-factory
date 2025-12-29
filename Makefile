@@ -28,6 +28,10 @@ check: test
 doctor:
 	@$(PY_ENV) $(PY) -m ytf doctor
 
+.PHONY: smoke
+smoke:
+	@PYTHONPATH=src $(PY) -m ytf new "smoke" --channel cafe_jazz --minutes 10 --tracks 2 --vocals on
+
 # ---- Task workflow ----
 .PHONY: next
 next:
