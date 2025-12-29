@@ -1,0 +1,1651 @@
+REPO SNAPSHOT BUNDLE
+Generated locally from repo working tree.
+
+================================================================================
+COMMAND OUTPUTS
+================================================================================
+
+$ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	migration/
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+$ git log -n 5 --oneline
+9af97df Complete T006 Roman inscription thumbnail text
+1b5b012 Update ROADMAP and TASKS documentation to reflect new ideas and streamline task organization. Introduce a section for later ideas in ROADMAP and remove optional tasks from TASKS, enhancing clarity and focus on active tasks. Adjust descriptions for the execution queue and task behavior for improved usability.
+d3ceb6c Add project overview documentation for yt-factory
+94fe926 Implement flexible argument handling for --file option in task command. Users can now specify the tasks file in either position of the command line. Update error handling for missing file argument and adjust argument parsing to improve usability.
+cc1eadd Update AGENTS.md to clarify agent rules and introduce a task execution protocol, including a strict definition of done. Revise TASKS.md to include task IDs and verification commands for better tracking and organization of tasks. This enhances the clarity and structure of project documentation for agents.
+
+$ ls -la
+total 112
+drwxr-xr-x  21 justindumascarr  staff   672 Dec 29 22:19 .
+drwxr-xr-x@ 12 justindumascarr  staff   384 Dec 27 15:30 ..
+-rw-r--r--@  1 justindumascarr  staff  6148 Dec 27 20:48 .DS_Store
+-rw-r--r--   1 justindumascarr  staff   285 Dec 27 22:47 .env
+-rw-r--r--   1 justindumascarr  staff   880 Dec 27 18:25 .env.example
+drwxr-xr-x  15 justindumascarr  staff   480 Dec 29 22:19 .git
+-rw-r--r--   1 justindumascarr  staff   249 Dec 27 15:52 .gitignore
+-rw-r--r--   1 justindumascarr  staff  4601 Dec 29 22:03 AGENTS.md
+-rw-r--r--   1 justindumascarr  staff  1446 Dec 28 22:28 Makefile
+-rw-r--r--   1 justindumascarr  staff  2809 Dec 28 22:07 README.md
+-rw-r--r--   1 justindumascarr  staff  6764 Dec 27 20:36 RECOMMENDATIONS.md
+drwxr-xr-x   3 justindumascarr  staff    96 Dec 27 21:46 assets
+drwxr-xr-x   8 justindumascarr  staff   256 Dec 27 20:54 channels
+-rw-r--r--@  1 justindumascarr  staff   406 Dec 27 17:24 credentials.json
+drwxr-xr-x  21 justindumascarr  staff   672 Dec 29 22:03 docs
+drwxr-xr-x   3 justindumascarr  staff    96 Dec 29 22:19 migration
+drwxr-xr-x   8 justindumascarr  staff   256 Dec 29 21:52 projects
+-rw-r--r--   1 justindumascarr  staff   675 Dec 27 21:30 pyproject.toml
+-rw-r--r--   1 justindumascarr  staff   252 Dec 27 21:30 requirements.txt
+drwxr-xr-x   4 justindumascarr  staff   128 Dec 27 22:19 src
+drwxr-xr-x   6 justindumascarr  staff   192 Dec 27 22:19 venv
+
+$ git ls-files | sort
+.env.example
+.gitignore
+AGENTS.md
+Makefile
+README.md
+RECOMMENDATIONS.md
+assets/brand/cafe_jazz/README.md
+channels/cafe_jazz.yaml
+channels/dnb_focus.yaml
+channels/fantasy_reading.yaml
+channels/fantasy_tavern.yaml
+channels/lofi_study.yaml
+channels/sleep_ambience.yaml
+docs/00_OVERVIEW.md
+docs/01_WORKFLOW.md
+docs/02_ARCHITECTURE.md
+docs/03_PROJECT_SCHEMA.md
+docs/04_LOGGING_AND_DEBUGGING.md
+docs/05_PROVIDERS_GEMINI.md
+docs/06_PROVIDERS_SUNO.md
+docs/07_RENDERING_FFMPEG.md
+docs/08_YOUTUBE_UPLOAD.md
+docs/09_FUTURE_SERVER_AND_STORAGE.md
+docs/10_GUI_LATER.md
+docs/DECISIONS.md
+docs/DEFINITION_OF_DONE.md
+docs/ERRORS_AND_RECOVERY.md
+docs/PROJECT_OVERVIEW.md
+docs/ROADMAP.md
+docs/TASKS.md
+docs/YOUTUBE_FACTORY_PROJECT_OVERVIEW.md
+docs/refs/SUNO_API.md
+pyproject.toml
+requirements.txt
+src/ytf.egg-info/PKG-INFO
+src/ytf.egg-info/SOURCES.txt
+src/ytf.egg-info/dependency_links.txt
+src/ytf.egg-info/entry_points.txt
+src/ytf.egg-info/requires.txt
+src/ytf.egg-info/top_level.txt
+src/ytf/__init__.py
+src/ytf/__main__.py
+src/ytf/channel.py
+src/ytf/cli.py
+src/ytf/cli_logs.py
+src/ytf/doctor.py
+src/ytf/logger.py
+src/ytf/project.py
+src/ytf/providers/__init__.py
+src/ytf/providers/gemini.py
+src/ytf/providers/suno.py
+src/ytf/providers/youtube.py
+src/ytf/runner.py
+src/ytf/steps/__init__.py
+src/ytf/steps/generate.py
+src/ytf/steps/generate_new.py
+src/ytf/steps/new.py
+src/ytf/steps/plan.py
+src/ytf/steps/queue.py
+src/ytf/steps/render.py
+src/ytf/steps/review.py
+src/ytf/steps/upload.py
+src/ytf/tools/__init__.py
+src/ytf/tools/tasks.py
+src/ytf/utils/__init__.py
+src/ytf/utils/ffmpeg.py
+src/ytf/utils/ffprobe.py
+src/ytf/utils/log_summary.py
+src/ytf/utils/qc.py
+src/ytf/utils/retry.py
+
+$ find src -maxdepth 3 -type f | sort
+src/ytf.egg-info/PKG-INFO
+src/ytf.egg-info/SOURCES.txt
+src/ytf.egg-info/dependency_links.txt
+src/ytf.egg-info/entry_points.txt
+src/ytf.egg-info/requires.txt
+src/ytf.egg-info/top_level.txt
+src/ytf/__init__.py
+src/ytf/__main__.py
+src/ytf/__pycache__/__init__.cpython-311.pyc
+src/ytf/__pycache__/__main__.cpython-311.pyc
+src/ytf/__pycache__/channel.cpython-311.pyc
+src/ytf/__pycache__/cli.cpython-311.pyc
+src/ytf/__pycache__/cli_logs.cpython-311.pyc
+src/ytf/__pycache__/doctor.cpython-311.pyc
+src/ytf/__pycache__/logger.cpython-311.pyc
+src/ytf/__pycache__/project.cpython-311.pyc
+src/ytf/__pycache__/runner.cpython-311.pyc
+src/ytf/channel.py
+src/ytf/cli.py
+src/ytf/cli_logs.py
+src/ytf/doctor.py
+src/ytf/logger.py
+src/ytf/project.py
+src/ytf/providers/__init__.py
+src/ytf/providers/gemini.py
+src/ytf/providers/suno.py
+src/ytf/providers/youtube.py
+src/ytf/runner.py
+src/ytf/steps/__init__.py
+src/ytf/steps/generate.py
+src/ytf/steps/generate_new.py
+src/ytf/steps/new.py
+src/ytf/steps/plan.py
+src/ytf/steps/queue.py
+src/ytf/steps/render.py
+src/ytf/steps/review.py
+src/ytf/steps/upload.py
+src/ytf/tools/__init__.py
+src/ytf/tools/tasks.py
+src/ytf/utils/__init__.py
+src/ytf/utils/ffmpeg.py
+src/ytf/utils/ffprobe.py
+src/ytf/utils/log_summary.py
+src/ytf/utils/qc.py
+src/ytf/utils/retry.py
+
+$ find docs -maxdepth 2 -type f | sort
+docs/00_OVERVIEW.md
+docs/01_WORKFLOW.md
+docs/02_ARCHITECTURE.md
+docs/03_PROJECT_SCHEMA.md
+docs/04_LOGGING_AND_DEBUGGING.md
+docs/05_PROVIDERS_GEMINI.md
+docs/06_PROVIDERS_SUNO.md
+docs/07_RENDERING_FFMPEG.md
+docs/08_YOUTUBE_UPLOAD.md
+docs/09_FUTURE_SERVER_AND_STORAGE.md
+docs/10_GUI_LATER.md
+docs/DECISIONS.md
+docs/DEFINITION_OF_DONE.md
+docs/ERRORS_AND_RECOVERY.md
+docs/PROJECT_OVERVIEW.md
+docs/ROADMAP.md
+docs/TASKS.md
+docs/YOUTUBE_FACTORY_PROJECT_OVERVIEW.md
+docs/refs/SUNO_API.md
+
+================================================================================
+FILE CONTENTS
+================================================================================
+
+--- FILE: AGENTS.md ---
+# AGENTS.md (LLM Rulebook + Doc Router)
+
+This repo is a **local-first Python CLI** project called **yt-factory**.
+
+If you are an LLM/agent: **read this file first**, follow its rules, then open the linked docs only when you need deeper details.
+
+Note: This file is the only source of truth for agent rules in this repo (we intentionally do not rely on `.cursorrules`).
+
+---
+
+## Non-negotiables (v1 constraints)
+- **No database in v1.** (No hidden state; do not add SQLite/Postgres/etc.)
+- **No Docker requirement** for local development.
+- **No web UI in v1.**
+- **Local-first, file-based state**: `projects/<project_id>/project.json` is the **single source of truth**.
+
+---
+
+## Core invariants (must preserve)
+- **Step-based pipeline**: `new → plan → generate → review → render → upload`.
+- **Every step writes a dedicated log file** under `projects/<id>/logs/`.
+- **Failures must be visible**:
+  - Write a clear error to `project.json.status.last_error` (message + step + stack).
+  - Write **full traceback** to the step log.
+  - Persist **provider raw errors** (truncate if needed, but don’t hide them).
+- **No scattered network calls**: keep external API calls centralized in provider modules / provider clients.
+
+---
+
+## Task execution protocol (required)
+
+Unless explicitly instructed otherwise, do the following:
+
+1) Open `docs/TASKS.md`
+2) Select the **first unchecked task** (`- [ ]`) in order
+3) Implement only that task
+4) Run all Verify commands listed for the task
+5) If verification passes:
+   - Mark the task as completed (`[x]`)
+   - (Optional) If you are using a GitHub workflow, open a PR with the task ID in the title
+6) If verification fails:
+   - Do NOT mark the task complete
+   - (Optional) If you are using a GitHub workflow, fix or report failure clearly in the PR description
+
+Do not skip tasks.
+Do not combine multiple tasks in one PR unless explicitly instructed.
+
+Preferred interface (when available):
+- Use `make next`, `make verify TASK=T###`, and `make done TASK=T### FORCE=1` to drive the loop.
+
+---
+
+## Code structure rules
+- Keep modules small and boring: **one file per step** under `src/ytf/steps/`.
+- Providers are isolated under `src/ytf/providers/`:
+  - **Do not mix provider logic into render/upload steps**.
+- Use typed config objects and **validate `project.json` before running a step**.
+- Prefer explicit exceptions and clear error messages over silent fallback behavior.
+
+---
+
+## Debugging contract (required behavior)
+When anything fails:
+- Update `project.json.status.last_error` with:
+  - `step`, `message`, `stack`, `at` (and if available: `kind`, `provider`, `raw`)
+- Ensure the step log contains the full traceback.
+- Do **not** delete partial outputs; keep them for debugging and resuming.
+
+---
+
+## Definition of Done (strict)
+
+A task is considered done ONLY if:
+- All its listed Verify commands succeed
+- `project.json` validation passes
+- No core invariants are violated
+- TASKS.md is updated in the same PR
+
+If any Verify command fails, the task is NOT done.
+
+---
+## Canonical verification command
+
+Preferred verification entrypoint:
+- `make test`
+
+If task-specific verification exists, it will be listed in TASKS.md.
+
+---
+
+## Documentation router (open these when relevant)
+
+### Start here
+- `docs/00_OVERVIEW.md`: system overview + default behaviors
+- `docs/01_WORKFLOW.md`: step semantics, lifecycle, and how the pipeline is expected to work
+
+### State & schema
+- `docs/03_PROJECT_SCHEMA.md`: `project.json` shape + project folder layout
+
+### Logging & recovery
+- `docs/04_LOGGING_AND_DEBUGGING.md`: log formats, summaries, how to inspect failures
+- `docs/ERRORS_AND_RECOVERY.md`: failure playbooks + deterministic recovery paths
+
+### Providers & integrations (read before changing APIs)
+- `docs/05_PROVIDERS_GEMINI.md`: Gemini integration details
+- `docs/06_PROVIDERS_SUNO.md` and `docs/refs/SUNO_API.md`: Suno integration details
+- `docs/08_YOUTUBE_UPLOAD.md`: YouTube upload integration details
+
+### Planning work (what to do next)
+- `docs/ROADMAP.md`: **milestone-level outcomes** (where we’re heading / what’s shipped)
+- `docs/TASKS.md`: **short-term execution list** (what we’re doing next; keep it small and actionable)
+- `docs/DECISIONS.md`: why decisions were made (prevents rework and re-arguing)
+
+---
+
+## Context7 requirement (don’t guess APIs)
+Before implementing or modifying any external API integration:
+- Use **Context7** to confirm endpoint paths, auth headers, payloads, and required scopes.
+- If uncertain about an API detail: **do not guess**. Fetch docs via Context7 and cite them in code comments.
+
+
+--- END FILE: AGENTS.md ---
+
+--- FILE: Makefile ---
+SHELL := /bin/bash
+.DEFAULT_GOAL := help
+
+TASKS_FILE := docs/TASKS.md
+PY ?= $(shell if [ -x ./venv/bin/python ]; then echo ./venv/bin/python; else echo python3; fi)
+PY_ENV := PYTHONPATH=src
+
+.PHONY: help
+help:
+	@echo "make next              Print the next unchecked task id (T###)"
+	@echo "make verify TASK=T001  Run Verify commands for task"
+	@echo "make done TASK=T001    Mark task done (use FORCE=1 to actually flip)"
+	@echo "make test              Run repo verification (fast smoke checks)"
+	@echo "make check             Alias for test"
+	@echo "make doctor            Run ytf doctor"
+
+# ---- Repo verification (thin wrappers) ----
+.PHONY: test
+test:
+	@$(PY) -m compileall -q src
+	@$(PY_ENV) $(PY) -m ytf --help >/dev/null
+	@$(PY_ENV) $(PY) -m ytf doctor
+
+.PHONY: check
+check: test
+
+.PHONY: doctor
+doctor:
+	@$(PY_ENV) $(PY) -m ytf doctor
+
+# ---- Task workflow ----
+.PHONY: next
+next:
+	@$(PY_ENV) $(PY) -m ytf.tools.tasks next --file "$(TASKS_FILE)"
+
+.PHONY: verify
+verify:
+	@if [ -z "$(TASK)" ]; then echo "Usage: make verify TASK=T001"; exit 2; fi
+	@$(PY_ENV) $(PY) -m ytf.tools.tasks verify "$(TASK)" --file "$(TASKS_FILE)"
+
+.PHONY: done
+done:
+	@if [ -z "$(TASK)" ]; then echo "Usage: make done TASK=T001 [FORCE=1]"; exit 2; fi
+	@if [ "$(FORCE)" = "1" ]; then \
+		$(PY_ENV) $(PY) -m ytf.tools.tasks done "$(TASK)" --file "$(TASKS_FILE)" --force; \
+	else \
+		$(PY_ENV) $(PY) -m ytf.tools.tasks done "$(TASK)" --file "$(TASKS_FILE)"; \
+	fi
+
+
+--- END FILE: Makefile ---
+
+--- FILE: pyproject.toml ---
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ytf"
+version = "0.1.0"
+description = "Local-first automation pipeline to generate music compilations and upload to YouTube"
+requires-python = ">=3.10"
+dependencies = [
+    "typer>=0.9.0",
+    "pydantic>=2.0.0",
+    "httpx>=0.25.0",
+    "python-dotenv>=1.0.0",
+    "PyYAML>=6.0.0",
+    "google-genai>=0.2.0",
+    "google-api-python-client>=2.0.0",
+    "google-auth-httplib2>=0.1.0",
+    "google-auth-oauthlib>=1.0.0",
+    "rich>=10.11.0",
+]
+
+[project.scripts]
+ytf = "ytf.cli:app"
+
+[tool.setuptools]
+packages = ["ytf"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+--- END FILE: pyproject.toml ---
+
+--- FILE: docs/ROADMAP.md ---
+# Roadmap
+
+This file tracks implementation status at a milestone level.
+Granular work lives in `docs/TASKS.md`.
+
+If you're an LLM/agent, start at `AGENTS.md` (repo rulebook + doc router), then come here only for milestone status.
+
+Legend:
+- [ ] not started
+- [~] in progress
+- [x] done
+- [!] blocked
+
+---
+
+## Milestone 0 . Repo scaffold (local-first)
+Goal: repo has the structure and docs needed to implement cleanly.
+
+- [x] Create folder structure:
+  - docs/
+  - src/
+  - projects/ (gitignored)
+- [ ] Add `.env.example` (optional, documented in README)
+- [x] Add `AGENTS.md` (agent rulebook + doc router)
+- [x] Add baseline docs (overview, workflow, schema, logging)
+
+Exit criteria:
+- Repo opens in Cursor, docs are present, and the expected layout exists.
+
+---
+
+## Milestone 1 . Local end-to-end pipeline (no Runway/Creatomate)
+Goal: go from theme to an Unlisted YouTube upload on macOS using CLI steps.
+
+- [x] CLI commands exist: `new`, `plan`, `generate`, `render`, `upload`
+- [x] Project state management:
+  - create/read/write `project.json`
+  - per-step log files
+  - status updates + last error persisted
+- [x] Gemini integration:
+  - generates prompts
+  - generates optional lyrics when vocals enabled
+  - generates YouTube metadata draft
+- [x] Suno integration:
+  - create job
+  - poll
+  - download audio
+  - record duration + paths
+- [x] Render integration (FFmpeg):
+  - use all available tracks (status==ok)
+  - generate background images with Gemini
+  - create thumbnails with text overlay
+  - loudness normalize
+  - mux static image to MP4
+  - generate chapters
+  - generate description text
+- [x] YouTube upload integration:
+  - [x] OAuth token caching
+  - [x] resumable upload
+  - [x] apply metadata (title/description/tags/privacy/category/language/made_for_kids)
+  - [x] auto thumbnail upload
+  - [x] store video_id and thumbnail status
+
+Exit criteria:
+- One command sequence produces:
+  - `output/final.mp4`
+  - `output/chapters.txt`
+  - `output/youtube_description.txt`
+  - uploaded YouTube video id recorded in project.json
+
+---
+
+## Milestone 2 . Reliability + throughput
+Goal: stop babysitting the pipeline.
+
+- [x] Retry/backoff policy for all provider calls
+  - Gemini: retry_call wrapper (3 retries, exponential backoff)
+  - Suno: retry_call wrapper (3 retries, exponential backoff)
+  - YouTube: resumable upload with exponential backoff (up to 10 retries)
+- [x] Track-level failures do not kill project (already expected, implemented)
+- [x] `approved.txt` support (optional manual gate)
+- [x] Auto-filter obvious failures:
+  - too short
+  - long initial silence
+  - missing/failed downloads
+- [x] Channel-driven workflow:
+  - channel profiles with defaults and constraints
+  - funnel outputs (templated descriptions + pinned comments)
+  - review/QC step with reports
+- [x] Batch mode:
+  - [x] run N projects sequentially
+  - [x] `ytf run` command for single-project pipeline execution
+  - [x] `ytf batch` command with batch summary output
+  - [x] retry logic for transient errors in batch context
+  - [x] Queue-based batch v2: file-based queue, attempt caps, partial resume
+- [x] Improved logs:
+  - [x] structured JSON logs optional (enabled via YTF_JSON_LOGS=true)
+  - [x] clear error summaries (auto-generated after each step)
+  - [x] `ytf logs` command for viewing logs and summaries
+  - [x] enhanced queue run summaries with aggregated error statistics
+
+Exit criteria:
+- Can run overnight batches and wake up to finished renders/uploads.
+
+---
+
+## Milestone 3 . Optional visual upgrades
+Goal: better CTR without breaking the core system.
+
+- [ ] Runway 10s intro slot (optional)
+- [ ] Creatomate title card clip (optional)
+- [ ] Thumbnail generation flow (optional)
+- [ ] Consistent branding templates per channel (optional)
+
+Exit criteria:
+- Visual enhancements plug in without changing the pipeline core.
+
+---
+
+## Milestone 4 . Server + remote storage (optional)
+Goal: run anywhere and store assets off your laptop.
+
+- [ ] Docker support (optional for dev, required on server)
+- [ ] StorageAdapter interface:
+  - LocalStorage (default)
+  - S3Storage (optional)
+- [ ] Server runbook:
+  - VPS setup
+  - cron scheduling
+  - environment variables
+  - persistent volumes / buckets
+- [ ] Simple monitoring:
+  - failure notifications (email/discord) optional
+
+
+Exit criteria:
+- Pipeline runs on a server and stores outputs remotely.
+
+## Later ideas (not in execution queue)
+
+These are intentionally not in `docs/TASKS.md` until we pull them into **Now**.
+
+- Runway 10s intro slot
+- Creatomate title card clip
+- StorageAdapter + S3
+- Docker packaging for server runs
+- Minimal GUI wrapper (FastAPI or Streamlit)
+--- END FILE: docs/ROADMAP.md ---
+
+--- FILE: docs/TASKS.md ---
+# Tasks
+
+Short-term execution queue.
+Keep **Now** to 10–20 items max.
+
+If you're an LLM/agent: start at `AGENTS.md`, then execute tasks from **Now** top to bottom.
+Default behavior: do the **first unchecked** task in **Now**.
+
+Legend:
+- [ ] not started
+- [~] in progress
+- [x] done
+- [!] blocked
+
+---
+
+## Now
+
+- [x] T006 Roman inscription thumbnail text (Cinzel, spacing, outline, shadow)
+  - Verify: make test
+  - Notes:
+    - Two centered text lines on 16:9 image
+    - Cinzel Bold for title, Cinzel Regular for subtitle (fallback allowed)
+    - ALL CAPS + wide letter spacing via manual spacing
+    - Color #F6F6F0
+    - Subtle outline + soft drop shadow
+    - Title position: y=0.66h, subtitle position: y=0.78h
+    - Subtitle source: `project.json.channel.title` if present, otherwise omit
+    - Implementation scope: update ffmpeg overlay + render step text preprocessing only
+
+---
+
+## Archive (completed)
+
+### A. Scaffolding
+- [x] Create repo structure: `src/`, `docs/`, `projects/`
+  - Acceptance: folders exist, projects/ is gitignored
+- [x] Add `.env.example`
+  - Acceptance: contains keys for Gemini, Suno, YouTube OAuth paths, optional defaults
+- [x] Add `docs/ROADMAP.md` and `docs/TASKS.md`
+  - Acceptance: these files exist and are linked in README
+
+### B. Project state + logging
+- [x] Implement project folder creation and id generation
+  - Acceptance: `ytf new` creates `projects/<id>/` with subfolders and `project.json`
+- [x] Implement read/write helpers for `project.json`
+  - Acceptance: all commands can load and update project.json reliably
+- [x] Implement per-step logs
+  - Acceptance: each step writes to `logs/<step>.log`
+- [x] Implement status updates + last error persistence
+  - Acceptance: on failure, `project.json.status.last_error` includes message + stack + step
+
+### C. CLI command skeleton
+- [x] Implement CLI entry and commands: `new`, `plan`, `generate`, `render`, `upload`
+  - Acceptance: commands run and print friendly output without doing real work yet
+- [x] Implement `ytf doctor` command (sanity checks)
+  - Checks: FFmpeg installed, env vars present, writable projects dir
+  - Acceptance: returns non-zero exit code on missing prerequisites
+
+### D. Gemini provider
+- [x] Implement Gemini client wrapper
+  - Acceptance: one function can call Gemini and return text reliably
+- [x] Implement `plan` step (prompts + optional lyrics + YouTube metadata)
+  - Acceptance: writes `plan.prompts[]` and `plan.youtube_metadata` to project.json
+- [x] Add prompt templates and constraints
+  - Acceptance: vocals OFF creates instrumental prompts; vocals ON creates prompt+lyrics pairs
+
+### E. Suno provider
+- [x] Implement Suno client wrapper using your API key
+  - Acceptance: can submit a generation job and get back a job id
+- [x] Implement polling + download
+  - Acceptance: downloads audio to `tracks/` and records local path
+- [x] Compute duration for downloaded tracks
+  - Acceptance: each track in project.json has `duration_seconds`
+
+### F. Rendering (FFmpeg)
+- [x] Implement track filtering (use all ok tracks)
+  - Acceptance: uses all tracks with status==ok and audio_path exists, sorted by track_index
+- [x] Implement loudness normalization (simple v1)
+  - Acceptance: output audio does not vary wildly in volume (basic loudnorm)
+- [x] Implement static image mux to MP4
+  - Acceptance: produces `output/final.mp4` at 1080p 30fps
+- [x] Generate chapters and description files
+  - Acceptance: `output/chapters.txt` and `output/youtube_description.txt` exist
+- [x] Implement background image generation with Gemini
+  - Acceptance: generates theme-appropriate background using Gemini 2.5 Flash Image API per-project (hard gate: render fails if generation fails, no upload without background)
+- [x] Implement thumbnail creation with text overlay
+  - Acceptance: creates `assets/thumbnail.png` with album title and theme text overlaid
+
+### G. YouTube upload
+- [x] Implement OAuth token caching
+  - Acceptance: first run authenticates, subsequent runs reuse token
+- [x] Implement resumable upload
+  - Acceptance: uploads mp4 and returns a video id
+- [x] Apply metadata (title/description/tags/privacy/category/language/made_for_kids)
+  - Acceptance: uploaded video matches channel-driven settings
+- [x] Persist YouTube results to project.json
+  - Acceptance: `youtube.video_id`, `thumbnail_uploaded`, `thumbnail_path` are saved
+- [x] Auto thumbnail upload
+  - Acceptance: if thumbnail exists, automatically uploads and persists status
+- [x] Idempotent upload behavior
+  - Acceptance: re-running upload step skips if video_id already exists and thumbnail uploaded; if video uploaded but thumbnail missing, retries thumbnail upload
+
+### Next (high leverage improvements)
+- [x] Channel-driven workflow:
+  - [x] Channel profiles (YAML configs) with defaults, constraints, templates
+  - [x] `ytf new` requires `--channel` and uses channel defaults
+  - [x] `plan` step applies channel constraints and validates metadata
+  - [x] Funnel outputs: templated descriptions + pinned comments with CTA
+  - Acceptance: channel profiles drive all steps, funnel outputs include CTAs
+- [x] `approved.txt` support (manual gate)
+  - Acceptance: if file exists, only listed tracks are rendered
+- [x] Auto-filter bad tracks (QC step):
+  - [x] reject too short
+  - [x] reject long initial silence
+  - [x] reject missing/corrupt files
+  - Acceptance: filtered tracks are marked in project.json with reason, QC reports generated
+- [x] Review/QC step:
+  - [x] `ytf review` command
+  - [x] QC checks (duration, leading silence, file integrity)
+  - [x] Generate `qc_report.json` and `qc_report.txt`
+  - [x] Honor `approved.txt` and `rejected.txt`
+  - Acceptance: review step runs between generate and render, persists QC results
+- [x] Retry/backoff wrapper for batch mode
+  - Acceptance: retry logic applied to plan/generate/upload steps in batch context, transient errors retried with exponential backoff
+- [x] `ytf run <id>` convenience command
+  - Runs plan -> generate -> review -> render -> upload (or up to --to step)
+  - Acceptance: stops at failed step and leaves good logs, skips upload if already uploaded
+- [x] `ytf batch` command
+  - Creates N projects and runs them sequentially
+  - Acceptance: generates batch_summary.json with per-project outcomes, never hides failures
+- [x] Queue-based batch processing v2:
+  - [x] `ytf queue add/ls/run` commands
+  - [x] File-based queue with pending/in_progress/done/failed lifecycle
+  - [x] Per-project and per-track attempt caps in project.json schema
+  - [x] Partial resume for generate step (skips completed tracks, retries failed under cap)
+  - [x] Queue run summaries (JSON + log per run)
+  - Acceptance: `ytf queue run` processes items sequentially, resumes after interruption, respects attempt caps
+--- END FILE: docs/TASKS.md ---
+
+--- FILE: src/ytf/cli.py ---
+"""
+CLI entry point using Typer.
+
+Commands:
+- new: Create a new project
+- doctor: Validate prerequisites
+- plan: Generate planning data
+- generate: Generate music tracks
+- review: Run quality control checks
+- render: Render final video
+- upload: Upload to YouTube
+- run: Run pipeline steps sequentially for a project
+- batch: Create and run multiple projects in batch
+
+Note: Requires Python 3.10+. The `importlib.metadata.packages_distributions` error
+on Python 3.9 is expected and will be resolved by using Python 3.10+.
+"""
+
+import sys
+
+# Check Python version early
+if sys.version_info < (3, 10):
+    print(
+        "Error: yt-factory requires Python 3.10 or higher. "
+        f"Current version: {sys.version}",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+import typer
+
+from ytf import doctor
+from ytf import runner
+from ytf.cli_logs import logs_app
+from ytf.steps import generate, new, plan, queue, render, review, upload
+
+app = typer.Typer(help="yt-factory: Local-first automation pipeline for music compilations")
+
+
+@app.command(name="new")
+def new_cmd(
+    theme: str = typer.Argument(..., help="Project theme"),
+    channel: str = typer.Option(..., "--channel", "-c", help="Channel ID (e.g., cafe_jazz, fantasy_tavern)"),
+    minutes: int = typer.Option(None, "--minutes", "-m", help="Target duration in minutes (overrides channel default)"),
+    tracks: int = typer.Option(None, "--tracks", "-t", help="Number of tracks to generate (overrides channel default)"),
+    vocals: str = typer.Option("off", "--vocals", help="Vocals: 'on' or 'off'"),
+    lyrics: str = typer.Option("off", "--lyrics", help="Lyrics: 'on' or 'off'"),
+) -> None:
+    """Create a new project."""
+    if vocals not in ("on", "off"):
+        typer.echo("Error: --vocals must be 'on' or 'off'", err=True)
+        raise typer.Exit(1)
+    if lyrics not in ("on", "off"):
+        typer.echo("Error: --lyrics must be 'on' or 'off'", err=True)
+        raise typer.Exit(1)
+
+    project_id = new.create_project(theme, channel, minutes, tracks, vocals, lyrics)
+    typer.echo(f"Created project: {project_id}")
+
+
+@app.command(name="doctor")
+def doctor_cmd() -> None:
+    """Validate prerequisites (FFmpeg, env vars, writable directories)."""
+    exit_code = doctor.check_all()
+    raise typer.Exit(exit_code)
+
+
+@app.command(name="plan")
+def plan_cmd(project_id: str = typer.Argument(..., help="Project ID")) -> None:
+    """Generate planning data (not implemented yet in Sprint 1)."""
+    plan.run(project_id)
+
+
+@app.command(name="generate")
+def generate_cmd(project_id: str = typer.Argument(..., help="Project ID")) -> None:
+    """Generate music tracks (not implemented yet in Sprint 1)."""
+    generate.run(project_id)
+
+
+@app.command(name="review")
+def review_cmd(project_id: str = typer.Argument(..., help="Project ID")) -> None:
+    """Run quality control checks and generate review reports."""
+    review.run(project_id)
+
+
+@app.command(name="render")
+def render_cmd(project_id: str = typer.Argument(..., help="Project ID")) -> None:
+    """Render final video (not implemented yet in Sprint 1)."""
+    render.run(project_id)
+
+
+@app.command(name="upload")
+def upload_cmd(project_id: str = typer.Argument(..., help="Project ID")) -> None:
+    """Upload to YouTube (not implemented yet in Sprint 1)."""
+    upload.run(project_id)
+
+
+@app.command(name="run")
+def run_cmd(
+    project_id: str = typer.Argument(..., help="Project ID"),
+    to_step: str = typer.Option("upload", "--to", help="Target step to run up to (plan, generate, review, render, upload)"),
+    from_step: str = typer.Option(None, "--from", help="Starting step (default: infer from project status)"),
+) -> None:
+    """Run pipeline steps sequentially for a project."""
+    runner.run_project(project_id, to_step=to_step, from_step=from_step)
+    typer.echo(f"Completed running steps up to: {to_step}")
+
+
+@app.command(name="batch")
+def batch_cmd(
+    channel: str = typer.Option(..., "--channel", "-c", help="Channel ID (e.g., cafe_jazz, fantasy_tavern)"),
+    count: int = typer.Option(..., "--count", "-n", help="Number of projects to create"),
+    mode: str = typer.Option("full", "--mode", "-m", help="Target mode: full, render, generate, plan, review, upload"),
+    theme: str = typer.Option("Batch Project", "--theme", "-t", help="Base theme (will be suffixed with index)"),
+) -> None:
+    """Create and run multiple projects in batch."""
+    summary = runner.run_batch(
+        channel_id=channel,
+        count=count,
+        mode=mode,
+        base_theme=theme,
+    )
+    
+    typer.echo(f"Batch completed: {summary['batch_id']}")
+    typer.echo(f"Successful: {summary['successful']}/{summary['total_projects']}")
+    typer.echo(f"Failed: {summary['failed']}/{summary['total_projects']}")
+    typer.echo(f"Summary saved to: projects/{summary['batch_id']}_summary.json")
+
+
+@app.command(name="queue")
+def queue_cmd(
+    action: str = typer.Argument(..., help="Action: add, ls, or run"),
+    channel: str = typer.Option(None, "--channel", "-c", help="Channel ID (required for 'add')"),
+    theme: str = typer.Option(None, "--theme", "-t", help="Theme (required for 'add')"),
+    mode: str = typer.Option("full", "--mode", "-m", help="Target mode (required for 'add')"),
+    count: int = typer.Option(1, "--count", "-n", help="Number of items to add (for 'add')"),
+    limit: int = typer.Option(None, "--limit", "-l", help="Max items to process (for 'run')"),
+) -> None:
+    """Queue-based batch processing."""
+    if action == "add":
+        if not channel or not theme:
+            typer.echo("Error: --channel and --theme are required for 'add'", err=True)
+            raise typer.Exit(1)
+        created = queue.add_queue_item(
+            channel_id=channel,
+            theme=theme,
+            mode=mode,
+            count=count,
+        )
+        typer.echo(f"Added {len(created)} item(s) to queue")
+        for filename in created:
+            typer.echo(f"  - {filename}")
+    elif action == "ls":
+        status = queue.list_queue()
+        typer.echo("Queue status:")
+        typer.echo(f"  Pending: {status['pending']}")
+        typer.echo(f"  In progress: {status['in_progress']}")
+        typer.echo(f"  Done: {status['done']}")
+        typer.echo(f"  Failed: {status['failed']}")
+    elif action == "run":
+        summary = queue.run_queue(limit=limit)
+        typer.echo(f"Queue run completed: {summary['run_id']}")
+        typer.echo(f"Processed: {summary['processed']}")
+        typer.echo(f"Successful: {summary['successful']}")
+        typer.echo(f"Failed: {summary['failed']}")
+        typer.echo(f"Summary saved to: queue/runs/{summary['run_id']}.json")
+    else:
+        typer.echo(f"Error: Unknown action '{action}'. Use 'add', 'ls', or 'run'", err=True)
+        raise typer.Exit(1)
+
+@app.command(name="logs")
+def logs_cmd(
+    project_id: str = typer.Argument(None, help="Project ID"),
+    action: str = typer.Argument("view", help="Action: 'view' or 'summary'"),
+    step: str = typer.Option(None, "--step", "-s", help="Filter to specific step"),
+    json_logs: bool = typer.Option(False, "--json", help="Parse and display JSON logs"),
+    errors_only: bool = typer.Option(False, "--errors-only", help="Show only ERROR level entries"),
+    lines: int = typer.Option(50, "--lines", "-n", help="Number of lines to show (default: 50)"),
+) -> None:
+    """View project logs and summaries."""
+    if action == "view":
+        if not project_id:
+            typer.echo("Error: project_id is required for 'view' action", err=True)
+            raise typer.Exit(1)
+        from ytf.cli_logs import logs_view_cmd
+        logs_view_cmd(project_id, step, json_logs, errors_only, lines)
+    elif action == "summary":
+        if not project_id:
+            typer.echo("Error: project_id is required for 'summary' action", err=True)
+            raise typer.Exit(1)
+        from ytf.cli_logs import logs_summary_cmd
+        logs_summary_cmd(project_id, step)
+    else:
+        typer.echo(f"Error: Unknown action '{action}'. Use 'view' or 'summary'", err=True)
+        raise typer.Exit(1)
+
+
+def main() -> None:
+    """Main entry point for the CLI."""
+    app()
+
+
+if __name__ == "__main__":
+    main()
+
+--- END FILE: src/ytf/cli.py ---
+
+--- FILE: src/ytf/runner.py ---
+"""
+Runner: Execute pipeline steps sequentially for a project.
+
+Provides `run_project` to run steps up to a target, and `run_batch` for batch processing.
+"""
+
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+from ytf.logger import StepLogger
+from ytf.project import PROJECTS_DIR, load_project
+from ytf.steps import generate, plan, render, review, upload
+from ytf.utils.retry import retry_step
+
+
+# Step execution order
+STEP_ORDER = ["plan", "generate", "review", "render", "upload"]
+
+
+def run_project(
+    project_id: str, to_step: str = "upload", from_step: Optional[str] = None, use_retries: bool = False
+) -> None:
+    """
+    Run pipeline steps sequentially for a project.
+
+    Args:
+        project_id: Project ID
+        to_step: Target step to run up to (default: "upload")
+        from_step: Starting step (default: infer from project.status.last_successful_step)
+
+    Raises:
+        ValueError: If step names are invalid
+        Exception: If any step fails (error persisted by step module)
+    """
+    if to_step not in STEP_ORDER:
+        raise ValueError(f"Invalid 'to_step': {to_step}. Must be one of {STEP_ORDER}")
+
+    project = load_project(project_id)
+
+    # Find target step index first
+    to_idx = STEP_ORDER.index(to_step)
+
+    # Determine starting point
+    if from_step:
+        if from_step not in STEP_ORDER:
+            raise ValueError(f"Invalid 'from_step': {from_step}. Must be one of {STEP_ORDER}")
+        start_idx = STEP_ORDER.index(from_step)
+    else:
+        # Infer from last_successful_step
+        last_step = project.status.last_successful_step
+        if last_step and last_step in STEP_ORDER:
+            # Start from the step after the last successful one
+            last_idx = STEP_ORDER.index(last_step)
+            start_idx = last_idx + 1
+            # Don't go past the target
+            if start_idx > to_idx:
+                # Already at or past target step
+                return
+        else:
+            # Start from beginning
+            start_idx = 0
+
+    # Determine which steps to run
+    steps_to_run = STEP_ORDER[start_idx : to_idx + 1]
+
+    if not steps_to_run:
+        # Already at or past target step
+        return
+
+    # Step function mapping
+    step_functions = {
+        "plan": plan.run,
+        "generate": generate.run,
+        "review": review.run,
+        "render": render.run,
+        "upload": _run_upload_with_skip,
+    }
+
+    # Steps that benefit from retries in batch mode
+    retriable_steps = {"plan", "generate", "upload"}
+
+    # Run each step
+    for step_name in steps_to_run:
+        step_func = step_functions[step_name]
+
+        # Apply retry wrapper if enabled and step is retriable
+        if use_retries and step_name in retriable_steps:
+            retried_func = retry_step(max_retries=3, initial_delay=1.0)(step_func)
+            retried_func(project_id)
+        else:
+            step_func(project_id)
+
+
+def _run_upload_with_skip(project_id: str) -> None:
+    """
+    Run upload step, skipping if already uploaded.
+
+    Args:
+        project_id: Project ID
+
+    Raises:
+        Exception: If upload fails (error persisted by step module)
+    """
+    project = load_project(project_id)
+
+    # Check if already uploaded
+    if project.youtube and project.youtube.video_id:
+        # Already uploaded, skip
+        with StepLogger(project_id, "upload") as log:
+            log.info(
+                f"Video already uploaded. Video ID: {project.youtube.video_id}. "
+                f"URL: https://www.youtube.com/watch?v={project.youtube.video_id}. "
+                "Skipping upload step."
+            )
+        return
+
+    # Run upload normally
+    upload.run(project_id)
+
+
+def run_batch(
+    channel_id: str,
+    count: int,
+    mode: str,
+    base_theme: str,
+    batch_id: Optional[str] = None,
+) -> dict:
+    """
+    Create and run multiple projects in batch.
+
+    Args:
+        channel_id: Channel ID
+        count: Number of projects to create
+        mode: Target step mode ("full", "render", "generate", etc.)
+        base_theme: Base theme string (will be suffixed with index)
+        batch_id: Optional batch ID (default: auto-generated timestamp)
+
+    Returns:
+        Dictionary with batch summary:
+        - batch_id
+        - channel_id
+        - mode
+        - created_at
+        - completed_at
+        - projects: list of project outcomes
+
+    Raises:
+        ValueError: If mode is invalid
+    """
+    from ytf.steps import new
+
+    # Map mode to target step
+    mode_to_step = {
+        "full": "upload",
+        "upload": "upload",
+        "render": "render",
+        "review": "review",
+        "generate": "generate",
+        "plan": "plan",
+    }
+
+    if mode not in mode_to_step:
+        raise ValueError(f"Invalid mode: {mode}. Must be one of {list(mode_to_step.keys())}")
+
+    target_step = mode_to_step[mode]
+
+    # Generate batch ID if not provided
+    if not batch_id:
+        batch_id = datetime.now().strftime("%Y%m%d_%H%M%S_batch")
+
+    created_at = datetime.now().isoformat()
+
+    # Create projects and run them
+    projects = []
+    for i in range(1, count + 1):
+        theme = f"{base_theme} {i}" if count > 1 else base_theme
+
+        project_outcome = {
+            "project_id": None,
+            "channel_id": channel_id,
+            "theme": theme,
+            "started_at": None,
+            "completed_at": None,
+            "last_successful_step": None,
+            "failed_step": None,
+            "error_message": None,
+            "youtube_video_id": None,
+        }
+
+        try:
+            project_outcome["started_at"] = datetime.now().isoformat()
+
+            # Create project
+            project_id = new.create_project(
+                theme=theme,
+                channel_id=channel_id,
+                minutes=None,  # Use channel default
+                tracks=None,  # Use channel default
+                vocals="off",
+                lyrics="off",
+            )
+            project_outcome["project_id"] = project_id
+
+            # Run pipeline with retries enabled for batch mode
+            run_project(project_id, to_step=target_step, use_retries=True)
+
+            # Load final state
+            project = load_project(project_id)
+            project_outcome["last_successful_step"] = project.status.last_successful_step
+            if project.youtube and project.youtube.video_id:
+                project_outcome["youtube_video_id"] = project.youtube.video_id
+
+            project_outcome["completed_at"] = datetime.now().isoformat()
+
+        except Exception as e:
+            # Capture failure
+            project_outcome["completed_at"] = datetime.now().isoformat()
+            
+            # Try to load project state for accurate failure info
+            if project_outcome["project_id"]:
+                try:
+                    project = load_project(project_outcome["project_id"])
+                    project_outcome["last_successful_step"] = project.status.last_successful_step
+                    project_outcome["failed_step"] = project.status.current_step
+                    if project.status.last_error:
+                        project_outcome["error_message"] = project.status.last_error.message
+                except Exception:
+                    # If we can't load project, use exception message
+                    project_outcome["failed_step"] = "unknown"
+                    project_outcome["error_message"] = str(e)
+            else:
+                # Project creation failed
+                project_outcome["failed_step"] = "new"
+                project_outcome["error_message"] = str(e)
+
+        projects.append(project_outcome)
+
+    completed_at = datetime.now().isoformat()
+
+    # Build summary
+    summary = {
+        "batch_id": batch_id,
+        "channel_id": channel_id,
+        "mode": mode,
+        "target_step": target_step,
+        "created_at": created_at,
+        "completed_at": completed_at,
+        "total_projects": count,
+        "successful": len([p for p in projects if p["failed_step"] is None]),
+        "failed": len([p for p in projects if p["failed_step"] is not None]),
+        "projects": projects,
+    }
+
+    # Save batch summary to projects directory
+    batch_summary_path = PROJECTS_DIR / f"{batch_id}_summary.json"
+    import json
+
+    with open(batch_summary_path, "w", encoding="utf-8") as f:
+        json.dump(summary, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+    return summary
+
+--- END FILE: src/ytf/runner.py ---
+
+--- FILE: src/ytf/doctor.py ---
+"""
+Doctor command: validate prerequisites before running the pipeline.
+
+Checks:
+- FFmpeg and FFprobe installed
+- Required environment variables present
+- Projects directory is writable
+"""
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+from ytf.project import PROJECTS_DIR
+
+
+def check_ffmpeg() -> tuple[bool, str]:
+    """
+    Check if FFmpeg is installed and accessible.
+
+    Returns:
+        (success, message) tuple
+    """
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return True, "FFmpeg is installed"
+        return False, "FFmpeg command failed"
+    except FileNotFoundError:
+        return False, "FFmpeg not found in PATH"
+    except subprocess.TimeoutExpired:
+        return False, "FFmpeg check timed out"
+    except Exception as e:
+        return False, f"FFmpeg check error: {e}"
+
+
+def check_ffprobe() -> tuple[bool, str]:
+    """
+    Check if FFprobe is installed and accessible.
+
+    Returns:
+        (success, message) tuple
+    """
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return True, "FFprobe is installed"
+        return False, "FFprobe command failed"
+    except FileNotFoundError:
+        return False, "FFprobe not found in PATH"
+    except subprocess.TimeoutExpired:
+        return False, "FFprobe check timed out"
+    except Exception as e:
+        return False, f"FFprobe check error: {e}"
+
+
+def check_env_var(name: str) -> tuple[bool, str]:
+    """
+    Check if an environment variable is set (not empty).
+
+    Args:
+        name: Environment variable name
+
+    Returns:
+        (success, message) tuple
+    """
+    value = os.getenv(name)
+    if value and value.strip():
+        return True, f"{name} is set"
+    return False, f"{name} is not set or empty"
+
+
+def check_writable_projects_dir() -> tuple[bool, str]:
+    """
+    Check if projects directory is writable.
+
+    Returns:
+        (success, message) tuple
+    """
+    try:
+        # Ensure directory exists
+        PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
+
+        # Try to create a temporary file
+        test_file = PROJECTS_DIR / ".doctor_test"
+        try:
+            test_file.write_text("test")
+            test_file.unlink()
+            return True, f"Projects directory is writable: {PROJECTS_DIR}"
+        except Exception as e:
+            return False, f"Cannot write to projects directory: {e}"
+    except Exception as e:
+        return False, f"Cannot create projects directory: {e}"
+
+
+def check_all() -> int:
+    """
+    Run all prerequisite checks and print results.
+
+    Returns:
+        Exit code: 0 if all pass, 1 if any fail
+    """
+    checks = [
+        ("FFmpeg", check_ffmpeg),
+        ("FFprobe", check_ffprobe),
+        ("GEMINI_API_KEY", lambda: check_env_var("GEMINI_API_KEY")),
+        ("SUNO_API_KEY", lambda: check_env_var("SUNO_API_KEY")),
+        (
+            "YOUTUBE_OAUTH_CREDENTIALS_PATH",
+            lambda: check_env_var("YOUTUBE_OAUTH_CREDENTIALS_PATH"),
+        ),
+        ("Projects directory", check_writable_projects_dir),
+    ]
+
+    print("Running prerequisite checks...\n")
+    all_passed = True
+
+    for name, check_func in checks:
+        success, message = check_func()
+        status = "✓" if success else "✗"
+        print(f"{status} {name}: {message}")
+        if not success:
+            all_passed = False
+
+    print()
+    if all_passed:
+        print("All checks passed!")
+        return 0
+    else:
+        print("Some checks failed. Please fix the issues above.")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(check_all())
+
+--- END FILE: src/ytf/doctor.py ---
+
+--- FILE: src/ytf/tools/tasks.py ---
+"""
+Task runner for docs/TASKS.md.
+
+Supports a minimal agent workflow:
+- next: print the first unchecked task id (T###)
+- verify T###: run all "Verify:" commands for that task
+- done T###: flip - [ ] -> - [x] for that task (requires --force by default)
+
+Design goals:
+- Conservative parsing (line-oriented, no Markdown AST)
+- No hidden state / caches
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import subprocess
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterable
+
+
+TASK_HEADER_RE = re.compile(r"^- \[(?P<mark>[ xX~!])\] (?P<task_id>T\d{3})\b(?P<title>.*)$")
+VERIFY_LINE_RE = re.compile(r"^\s+- Verify:\s*(?P<cmd>.+?)\s*$")
+
+
+@dataclass(frozen=True)
+class TaskBlock:
+    task_id: str
+    mark: str
+    header_line_index: int
+    end_line_index_exclusive: int
+    verify_commands: tuple[str, ...]
+
+
+def _read_lines(path: Path) -> list[str]:
+    try:
+        return path.read_text(encoding="utf-8").splitlines(keepends=True)
+    except FileNotFoundError:
+        raise RuntimeError(f"Tasks file not found: {path}")
+
+
+def _iter_task_headers(lines: list[str]) -> Iterable[tuple[int, re.Match[str]]]:
+    for i, line in enumerate(lines):
+        m = TASK_HEADER_RE.match(line.rstrip("\n"))
+        if m:
+            yield i, m
+
+
+def _parse_tasks(lines: list[str]) -> dict[str, TaskBlock]:
+    headers = list(_iter_task_headers(lines))
+    tasks: dict[str, TaskBlock] = {}
+
+    for idx, (line_i, m) in enumerate(headers):
+        next_header_i = headers[idx + 1][0] if idx + 1 < len(headers) else len(lines)
+        task_id = m.group("task_id")
+        mark = m.group("mark")
+
+        verify_cmds: list[str] = []
+        for block_line in lines[line_i + 1 : next_header_i]:
+            vm = VERIFY_LINE_RE.match(block_line.rstrip("\n"))
+            if vm:
+                verify_cmds.append(vm.group("cmd").strip())
+
+        tasks[task_id] = TaskBlock(
+            task_id=task_id,
+            mark=mark,
+            header_line_index=line_i,
+            end_line_index_exclusive=next_header_i,
+            verify_commands=tuple(verify_cmds),
+        )
+
+    return tasks
+
+
+def cmd_next(tasks_file: Path) -> int:
+    lines = _read_lines(tasks_file)
+    tasks = _parse_tasks(lines)
+
+    for task_id in sorted(tasks.keys()):
+        # IDs are sortable lexicographically for T### (T001 < T010 < T100)
+        if tasks[task_id].mark == " ":
+            print(task_id)
+            return 0
+
+    print("No unchecked tasks found (no '- [ ] T### ...' entries).", file=sys.stderr)
+    return 1
+
+
+def cmd_verify(tasks_file: Path, task_id: str) -> int:
+    lines = _read_lines(tasks_file)
+    tasks = _parse_tasks(lines)
+
+    if task_id not in tasks:
+        print(f"Task not found: {task_id}", file=sys.stderr)
+        return 2
+
+    block = tasks[task_id]
+    if not block.verify_commands:
+        print(f"No Verify commands found for {task_id}. Add lines like: '  - Verify: <command>'", file=sys.stderr)
+        return 2
+
+    for cmd in block.verify_commands:
+        print(f"[verify] {cmd}", file=sys.stderr)
+        proc = subprocess.run(cmd, shell=True)
+        if proc.returncode != 0:
+            print(f"[verify] FAILED ({task_id}): {cmd}", file=sys.stderr)
+            return proc.returncode
+
+    print(f"[verify] OK ({task_id})", file=sys.stderr)
+    return 0
+
+
+def cmd_done(tasks_file: Path, task_id: str, force: bool) -> int:
+    lines = _read_lines(tasks_file)
+
+    for i, line in enumerate(lines):
+        m = TASK_HEADER_RE.match(line.rstrip("\n"))
+        if not m:
+            continue
+        if m.group("task_id") != task_id:
+            continue
+
+        mark = m.group("mark")
+        if mark.lower() == "x":
+            print(f"Task already marked done: {task_id}", file=sys.stderr)
+            return 0
+
+        if not force:
+            print(
+                f"Refusing to mark done without --force (no verification cache). "
+                f"Run 'make verify TASK={task_id}' then re-run with FORCE=1.",
+                file=sys.stderr,
+            )
+            return 2
+
+        # Replace only the checkbox portion on this line.
+        # Example: "- [ ] T001 ..." -> "- [x] T001 ..."
+        lines[i] = re.sub(r"^- \[ \] ", "- [x] ", lines[i])
+        tasks_file.write_text("".join(lines), encoding="utf-8")
+        print(f"Marked done: {task_id}", file=sys.stderr)
+        return 0
+
+    print(f"Task not found: {task_id}", file=sys.stderr)
+    return 2
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+
+    # Accept --file in either position:
+    # - python -m ytf.tools.tasks --file docs/TASKS.md next
+    # - python -m ytf.tools.tasks next --file docs/TASKS.md
+    tasks_file_arg = "docs/TASKS.md"
+    cleaned: list[str] = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--file":
+            if i + 1 >= len(argv):
+                print("error: --file requires a value", file=sys.stderr)
+                return 2
+            tasks_file_arg = argv[i + 1]
+            i += 2
+            continue
+        if a.startswith("--file="):
+            tasks_file_arg = a.split("=", 1)[1]
+            i += 1
+            continue
+        cleaned.append(a)
+        i += 1
+
+    parser = argparse.ArgumentParser(prog="python -m ytf.tools.tasks")
+
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("next", help="Print the first unchecked task id (T###)")
+
+    p_verify = sub.add_parser("verify", help="Run Verify commands for a task")
+    p_verify.add_argument("task_id", help="Task id like T001")
+
+    p_done = sub.add_parser("done", help="Mark a task as done (requires --force by default)")
+    p_done.add_argument("task_id", help="Task id like T001")
+    p_done.add_argument("--force", action="store_true", help="Allow editing TASKS.md to mark task done")
+
+    args = parser.parse_args(cleaned)
+    tasks_file = Path(tasks_file_arg)
+
+    if args.cmd == "next":
+        return cmd_next(tasks_file)
+    if args.cmd == "verify":
+        return cmd_verify(tasks_file, args.task_id)
+    if args.cmd == "done":
+        return cmd_done(tasks_file, args.task_id, force=bool(args.force))
+
+    print(f"Unknown command: {args.cmd}", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+
+--- END FILE: src/ytf/tools/tasks.py ---
+
+--- FILE: src/ytf/steps/new.py ---
+"""
+New step: Create a new project with folder structure and project.json.
+
+This is the first step in the pipeline. It creates the project folder,
+initializes project.json with user inputs, and sets up required directories.
+"""
+
+from datetime import datetime
+from typing import Optional
+
+from ytf.channel import get_channel
+from ytf.logger import StepLogger
+from ytf.project import (
+    Project,
+    VocalsConfig,
+    LyricsConfig,
+    VideoConfig,
+    UploadConfig,
+    FunnelConfig,
+    ProjectStatus,
+    generate_project_id,
+    create_project_folder,
+    save_project,
+    update_status,
+)
+
+
+def create_project(
+    theme: str,
+    channel_id: str,
+    minutes: Optional[int] = None,
+    tracks: Optional[int] = None,
+    vocals: str = "off",
+    lyrics: str = "off",
+) -> str:
+    """
+    Create a new project with folder structure and project.json.
+
+    Args:
+        theme: Project theme
+        channel_id: Channel ID (e.g., "cafe_jazz", "fantasy_tavern")
+        minutes: Target duration in minutes (overrides channel default if provided)
+        tracks: Number of tracks to generate (overrides channel default if provided)
+        vocals: "on" or "off" (default "off")
+        lyrics: "on" or "off" (default "off", only applies if vocals is "on")
+
+    Returns:
+        Project ID string
+
+    Raises:
+        FileNotFoundError: If channel config doesn't exist
+        ValueError: If channel config is invalid
+    """
+    # Load channel profile
+    channel = get_channel(channel_id)
+
+    # Generate project ID
+    project_id = generate_project_id(theme)
+
+    # Create folder structure
+    project_dir = create_project_folder(project_id)
+
+    # Use channel defaults, but allow overrides
+    target_minutes = minutes if minutes is not None else channel.duration_rules.target_minutes
+    track_count = tracks if tracks is not None else channel.duration_rules.track_count
+
+    # Initialize project with user inputs and channel defaults
+    vocals_enabled = vocals == "on"
+    lyrics_enabled = lyrics == "on" and vocals_enabled
+
+    # Use channel prompt constraints if vocals not explicitly set
+    if vocals == "off":
+        # Channel default takes precedence
+        vocals_enabled = not channel.prompt_constraints.default_instrumental
+
+        project = Project(
+        project_id=project_id,
+        created_at=datetime.now().isoformat(),
+        theme=theme,
+        channel_id=channel_id,
+        intent=channel.intent,
+        target_minutes=target_minutes,
+        track_count=track_count,
+        vocals=VocalsConfig(enabled=vocals_enabled),
+        lyrics=LyricsConfig(enabled=lyrics_enabled, source="gemini"),
+        video=VideoConfig(width=1920, height=1080, fps=30),
+        upload=UploadConfig(
+            privacy=channel.upload_defaults.privacy,
+            category_id=channel.upload_defaults.category_id,
+            made_for_kids=channel.upload_defaults.made_for_kids,
+            default_language=channel.upload_defaults.default_language,
+        ),
+        funnel=FunnelConfig(),
+        status=ProjectStatus(current_step="new", last_successful_step="new"),
+    )
+
+    # Use logger for this step
+    with StepLogger(project_id, "new") as log:
+        try:
+            log.info(f"Creating project: {project_id}")
+            log.info(f"Channel: {channel_id} ({channel.name})")
+            log.info(f"Theme: {theme}")
+            log.info(f"Intent: {channel.intent}")
+            log.info(f"Target minutes: {target_minutes} (channel default: {channel.duration_rules.target_minutes})")
+            log.info(f"Track count: {track_count} (channel default: {channel.duration_rules.track_count})")
+            log.info(f"Vocals: {vocals_enabled}")
+            log.info(f"Lyrics: {lyrics_enabled}")
+
+            # Save project.json
+            save_project(project)
+            update_status(project, "new", error=None)
+            save_project(project)
+
+            log.info(f"Project created successfully: {project_dir}")
+        except Exception as e:
+            update_status(project, "new", error=e)
+            save_project(project)
+            log.error(f"Failed to create project: {e}")
+            raise
+
+    return project_id
+
+--- END FILE: src/ytf/steps/new.py ---
+

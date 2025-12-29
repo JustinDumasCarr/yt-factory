@@ -68,12 +68,8 @@ def create_project(
     vocals_enabled = vocals == "on"
     lyrics_enabled = lyrics == "on" and vocals_enabled
 
-    # Use channel prompt constraints if vocals not explicitly set
-    if vocals == "off":
-        # Channel default takes precedence
-        vocals_enabled = not channel.prompt_constraints.default_instrumental
-
-        project = Project(
+    # CLI always passes explicit "on" or "off"; respect that.
+    project = Project(
         project_id=project_id,
         created_at=datetime.now().isoformat(),
         theme=theme,
