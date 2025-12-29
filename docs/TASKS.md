@@ -1,5 +1,10 @@
 # Tasks
 
+> ⚠️ Archive only
+>
+> This file is no longer the execution queue.
+> The execution queue lives in ClickUp (Folders `Execution – *`, List `Execution`, Status `READY`).
+
 Short-term execution queue.
 Keep **Now** to 10–20 items max.
 
