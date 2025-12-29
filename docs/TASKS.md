@@ -16,7 +16,7 @@ Legend:
 
 ## Now
 
-- [ ] T006 Roman inscription thumbnail text (Cinzel, spacing, outline, shadow)
+- [x] T006 Roman inscription thumbnail text (Cinzel, spacing, outline, shadow)
   - Verify: make test
   - Notes:
     - Two centered text lines on 16:9 image

@@ -37,10 +37,10 @@ Unless explicitly instructed otherwise, do the following:
 4) Run all Verify commands listed for the task
 5) If verification passes:
    - Mark the task as completed (`[x]`)
-   - Open a PR with the task ID in the title
+   - (Optional) If you are using a GitHub workflow, open a PR with the task ID in the title
 6) If verification fails:
    - Do NOT mark the task complete
-   - Fix or report failure clearly in the PR description
+   - (Optional) If you are using a GitHub workflow, fix or report failure clearly in the PR description
 
 Do not skip tasks.
 Do not combine multiple tasks in one PR unless explicitly instructed.

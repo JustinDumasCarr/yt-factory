@@ -306,13 +306,29 @@ def run(project_id: str) -> None:
             title_spaced = add_letter_spacing(title_uppercase)
             
             # Get channel title and process
-            # Use channel.name from config if available, otherwise fall back to env var or default
-            if channel and channel.name:
-                channel_title = channel.name
-            else:
-                channel_title = get_channel_title()
-            channel_uppercase = channel_title.upper()
-            channel_spaced = add_letter_spacing(channel_uppercase)
+            # Subtitle source:
+            # - Prefer `project.json.channel.title` when present (some project.json files may embed this).
+            # - Otherwise, fall back to channel profile name when available.
+            # - Otherwise, omit subtitle (do not fall back to env var/defaults for this style).
+            channel_spaced = None
+            subtitle_raw = None
+            try:
+                import json
+
+                raw_project_path = project_dir / "project.json"
+                with open(raw_project_path, "r", encoding="utf-8") as f:
+                    raw_project = json.load(f)
+                raw_channel = raw_project.get("channel") or {}
+                if isinstance(raw_channel, dict):
+                    subtitle_raw = raw_channel.get("title") or raw_channel.get("name")
+            except Exception:
+                subtitle_raw = None
+
+            if not subtitle_raw and channel and channel.name:
+                subtitle_raw = channel.name
+
+            if subtitle_raw:
+                channel_spaced = add_letter_spacing(str(subtitle_raw).upper())
             
             # Get thumbnail style from channel config
             thumbnail_style = None

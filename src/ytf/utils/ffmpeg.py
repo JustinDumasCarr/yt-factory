@@ -326,7 +326,7 @@ def overlay_text_on_image(
     image_path: Union[str, Path],
     output_path: Union[str, Path],
     title: str,
-    channel_title: str,
+    channel_title: Optional[str],
     width: int = 1920,
     height: int = 1080,
     thumbnail_style: Optional[object] = None,  # ThumbnailStyle from channel config
@@ -339,7 +339,7 @@ def overlay_text_on_image(
         image_path: Path to input image
         output_path: Path where to save the output image with text overlay
         title: Main title text (already processed with caps and letter spacing)
-        channel_title: Channel title text (already processed with caps and letter spacing)
+        channel_title: Optional subtitle text (already processed with caps and letter spacing). If None/blank, omit.
         width: Image width in pixels (default 1920)
         height: Image height in pixels (default 1080)
         thumbnail_style: Optional ThumbnailStyle config from channel
@@ -411,7 +411,7 @@ def overlay_text_on_image(
         return text
 
     title_escaped = escape_text(title)
-    channel_title_escaped = escape_text(channel_title)
+    channel_title_escaped = escape_text(channel_title) if channel_title else ""
 
     # Extract border and shadow values as constants
     # These affect the actual rendered width and must be accounted for
@@ -445,20 +445,33 @@ def overlay_text_on_image(
         else:
             title_font_size = title_base_size
     
-    if thumbnail_style and hasattr(thumbnail_style, "font_size_subtitle") and thumbnail_style.font_size_subtitle:
-        subtitle_font_size = thumbnail_style.font_size_subtitle
-    else:
-        # For subtitle: start with 55px, scale down if needed
-        subtitle_base_size = 55
-        subtitle_char_count = len(channel_title)
-        # Account for border and shadow in width estimation
-        subtitle_estimated_width = (subtitle_char_count * subtitle_base_size * 1.15) + (border_width * 2) + abs(shadow_x)
-        if subtitle_estimated_width > available_width:
-            # Calculate font size that fits: (available_width - border - shadow) / (char_count * 1.15)
-            subtitle_font_size = int((available_width - (border_width * 2) - abs(shadow_x)) / (subtitle_char_count * 1.15))
-            subtitle_font_size = max(25, subtitle_font_size)  # Minimum 25px
+    subtitle_font_size = None
+    if channel_title:
+        if (
+            thumbnail_style
+            and hasattr(thumbnail_style, "font_size_subtitle")
+            and thumbnail_style.font_size_subtitle
+        ):
+            subtitle_font_size = thumbnail_style.font_size_subtitle
         else:
-            subtitle_font_size = subtitle_base_size
+            # For subtitle: start with 55px, scale down if needed
+            subtitle_base_size = 55
+            subtitle_char_count = len(channel_title)
+            # Account for border and shadow in width estimation
+            subtitle_estimated_width = (
+                (subtitle_char_count * subtitle_base_size * 1.15)
+                + (border_width * 2)
+                + abs(shadow_x)
+            )
+            if subtitle_estimated_width > available_width:
+                # Calculate font size that fits: (available_width - border - shadow) / (char_count * 1.15)
+                subtitle_font_size = int(
+                    (available_width - (border_width * 2) - abs(shadow_x))
+                    / (subtitle_char_count * 1.15)
+                )
+                subtitle_font_size = max(25, subtitle_font_size)  # Minimum 25px
+            else:
+                subtitle_font_size = subtitle_base_size
 
     # Get text color from thumbnail_style if provided
     text_color = "0xF6F6F0"  # Default warm off-white
@@ -531,26 +544,29 @@ def overlay_text_on_image(
         f"{title_font_file}"
     )
 
-    # Subtitle: dynamically sized font with channel styling
-    subtitle_font_file = f":fontfile={subtitle_font_file_path}" if subtitle_font_file_path else ""
-    subtitle_filter = (
-        f"drawtext=text='{channel_title_escaped}':"
-        f"fontsize={subtitle_font_size}:"
-        f"fontcolor={text_color}:"
-        f"borderw={border_width}:"
-        f"bordercolor=black@0.25:"
-        f"shadowx={shadow_x}:"
-        f"shadowy={shadow_y}:"
-        f"shadowcolor=black@0.6:"
-        f"x={subtitle_x}:"
-        f"y={subtitle_y}"
-        f"{subtitle_font_file}"
-    )
+    filter_parts = [title_filter]
+    if channel_title and subtitle_font_size is not None:
+        # Subtitle: dynamically sized font with channel styling
+        subtitle_font_file = (
+            f":fontfile={subtitle_font_file_path}" if subtitle_font_file_path else ""
+        )
+        subtitle_filter = (
+            f"drawtext=text='{channel_title_escaped}':"
+            f"fontsize={subtitle_font_size}:"
+            f"fontcolor={text_color}:"
+            f"borderw={border_width}:"
+            f"bordercolor=black@0.25:"
+            f"shadowx={shadow_x}:"
+            f"shadowy={shadow_y}:"
+            f"shadowcolor=black@0.6:"
+            f"x={subtitle_x}:"
+            f"y={subtitle_y}"
+            f"{subtitle_font_file}"
+        )
+        filter_parts.append(subtitle_filter)
 
-    # Combine filters - use semicolon to separate complex filter chains if needed
-    # But comma should work for simple chains. The issue might be with expression parsing.
-    # Let's try wrapping the x expression in parentheses or using a different approach
-    filter_complex = f"{title_filter},{subtitle_filter}"
+    # Combine filters (comma-separated drawtext filters)
+    filter_complex = ",".join(filter_parts)
 
     try:
         result = subprocess.run(
@@ -581,19 +597,22 @@ def overlay_text_on_image(
                 f"x={title_x}:"
                 f"y={title_y}"
             )
-            subtitle_filter_fallback = (
-                f"drawtext=text='{channel_title_escaped}':"
-                f"fontsize={subtitle_font_size}:"
-                f"fontcolor=0xF6F6F0:"
-                f"borderw={border_width}:"
-                f"bordercolor=black@0.25:"
-                f"shadowx={shadow_x}:"
-                f"shadowy={shadow_y}:"
-                f"shadowcolor=black@0.6:"
-                f"x={subtitle_x}:"
-                f"y={subtitle_y}"
-            )
-            filter_complex_fallback = f"{title_filter_fallback},{subtitle_filter_fallback}"
+            fallback_parts = [title_filter_fallback]
+            if channel_title and subtitle_font_size is not None:
+                subtitle_filter_fallback = (
+                    f"drawtext=text='{channel_title_escaped}':"
+                    f"fontsize={subtitle_font_size}:"
+                    f"fontcolor=0xF6F6F0:"
+                    f"borderw={border_width}:"
+                    f"bordercolor=black@0.25:"
+                    f"shadowx={shadow_x}:"
+                    f"shadowy={shadow_y}:"
+                    f"shadowcolor=black@0.6:"
+                    f"x={subtitle_x}:"
+                    f"y={subtitle_y}"
+                )
+                fallback_parts.append(subtitle_filter_fallback)
+            filter_complex_fallback = ",".join(fallback_parts)
 
             result = subprocess.run(
                 [
