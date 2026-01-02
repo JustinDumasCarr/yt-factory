@@ -54,6 +54,7 @@ class SunoProvider:
         title: str,
         prompt: Optional[str] = None,
         instrumental: bool = False,
+        negative_tags: Optional[str] = None,
     ) -> str:
         """
         Submit a music generation job to Suno.
@@ -63,6 +64,7 @@ class SunoProvider:
             title: Track title (required for customMode)
             prompt: Lyrics text (required if instrumental=False, used as exact lyrics)
             instrumental: Whether track should be instrumental
+            negative_tags: Comma-separated tags to exclude (e.g., "Drums, Melody, Beat")
 
         Returns:
             Task ID string
@@ -87,6 +89,11 @@ class SunoProvider:
                 )
             payload["prompt"] = prompt
         # If instrumental=true, prompt is not used (per Suno docs)
+        # But we can use negativeTags to guide generation
+        
+        # Add negativeTags if provided (helps exclude unwanted elements)
+        if negative_tags:
+            payload["negativeTags"] = negative_tags
 
         try:
             # Wrap API call with retry logic
