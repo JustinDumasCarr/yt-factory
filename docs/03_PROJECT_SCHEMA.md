@@ -38,7 +38,7 @@ assets/brand/<channel_id>/
 
 ### Soundbank folder (repo root, global)
 assets/soundbank/
-  soundbank.json (metadata: list of available sounds with IDs, paths, durations)
+  soundbank.json (metadata: list of available sounds with IDs, paths, durations, licenses)
   <sound_id>.mp3 (or .wav) - Reusable audio stems for tinnitus channel
   <sound_id>.mp3
   ...
@@ -49,6 +49,18 @@ assets/soundbank/
   - crickets_night_001.mp3
   - ocean_waves_001.mp3
   - cicadas_summer_001.mp3
+
+  soundbank.json entries include:
+  - sound_id: unique identifier
+  - filename: audio file name
+  - name: human-readable name
+  - description: optional description
+  - duration_seconds: audio duration
+  - created_at: ISO timestamp
+  - source: "suno" | "manual" | "freesound" | "pixabay"
+  - license_type: "CC0" | "CC-BY" | "Pixabay" | "Suno" | "manual" | "custom" | null
+  - license_url: optional URL to license text
+  - commercial_ok: boolean indicating commercial use allowed (default: false for safety)
 
 ## project.json shape (v2 - channel-driven)
 Top-level fields:

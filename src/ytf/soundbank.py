@@ -28,7 +28,10 @@ class SoundbankEntry(BaseModel):
     description: Optional[str] = None  # Optional description
     duration_seconds: float  # Duration of the audio file
     created_at: str  # ISO timestamp
-    source: str = "suno"  # "suno" | "manual" (manually added file)
+    source: str = "suno"  # "suno" | "manual" | "freesound" | "pixabay"
+    license_type: Optional[str] = None  # "CC0" | "CC-BY" | "Pixabay" | "Suno" | "manual" | "custom"
+    license_url: Optional[str] = None  # URL to license text/documentation
+    commercial_ok: bool = False  # Whether sound can be used commercially (default False for safety)
 
 
 class Soundbank(BaseModel):
@@ -169,6 +172,16 @@ def add_sound_from_file(
     dest_path = SOUNDBANK_DIR / filename
     shutil.copy2(source_path, dest_path)
     
+    # Set license defaults based on source
+    license_type = None
+    commercial_ok = False
+    if source == "manual":
+        license_type = "manual"
+        commercial_ok = True  # User-provided, assume they have rights
+    elif source == "suno":
+        license_type = "Suno"
+        commercial_ok = True  # Suno allows commercial use per their terms
+    
     # Create entry
     entry = SoundbankEntry(
         sound_id=sound_id,
@@ -178,6 +191,8 @@ def add_sound_from_file(
         duration_seconds=duration,
         created_at=datetime.now().isoformat(),
         source=source,
+        license_type=license_type,
+        commercial_ok=commercial_ok,
     )
     
     # Add to soundbank
@@ -264,7 +279,7 @@ def generate_sound_via_suno(
         final_path = SOUNDBANK_DIR / filename
         temp_path.rename(final_path)
         
-        # Create entry
+        # Create entry with Suno license
         entry = SoundbankEntry(
             sound_id=sound_id,
             filename=filename,
@@ -273,6 +288,8 @@ def generate_sound_via_suno(
             duration_seconds=duration,
             created_at=datetime.now().isoformat(),
             source="suno",
+            license_type="Suno",
+            commercial_ok=True,  # Suno allows commercial use per their terms
         )
         
         # Add to soundbank

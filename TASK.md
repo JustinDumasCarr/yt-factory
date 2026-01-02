@@ -1,54 +1,42 @@
-# Task: Research successful tinnitus background sound channels on YouTube
+# Task: Create Pixabay Audio API provider
 
-**Task ID:** 86c7arz71  
-**Status:** READY → IN PROGRESS  
-**URL:** https://app.clickup.com/t/86c7arz71
+**Task ID:** 86c7atbwu  
+**Status:** IN PROGRESS  
+**URL:** https://app.clickup.com/t/86c7atbwu
 
 ## Goal
 
-Research and analyze successful YouTube channels that focus on tinnitus background sounds to identify patterns, content formats, and strategies that can be replicated for our future YouTube channel.
+Implement Pixabay Audio API client to search and download royalty-free ambient sounds as a fallback source.
 
-## Scope/Allowed
+## Scope
 
-- Research YouTube channels focused on tinnitus relief/background sounds
-- Analyze content format, video types, and popular sounds
-- Document engagement metrics (views, likes, comments, subscriber growth)
-- Identify successful patterns and strategies
-- Compile findings into a structured report
-- Focus on channels with significant viewership and engagement
+**IN:**
+- Create `src/ytf/providers/pixabay.py` with API client
+- Implement search by keywords
+- Implement download with license metadata (all Pixabay audio is free for commercial use)
+- Store `PIXABAY_API_KEY` in `.env` (document setup)
+
+**OUT:**
+- No CLI integration yet (separate task)
+- No soundbank module integration yet (separate task)
 
 ## Acceptance Criteria
 
-1. At least 5-10 successful tinnitus background sound channels identified
-2. Analysis includes:
-   - Content format and video types
-   - Popular sounds and audio patterns
-   - Engagement metrics (views, likes, comments, subscriber counts)
-   - Upload frequency and consistency
-   - Thumbnail and title strategies
-3. Report compiled with findings organized by category
-4. Report includes actionable recommendations for our channel
-5. Report saved in a shareable format (markdown or document)
+- `PixabayProvider` class with `search()` and `download()` methods
+- Search returns audio results with metadata
+- Download extracts audio file and sets license to "Pixabay"
+- API key loaded from environment variable
+- Error handling for API failures
 
 ## Verify Commands
 
 ```bash
-# Verify report exists and contains required sections
-test -f docs/research/tinnitus_channels_research.md
-grep -q "Channels Identified" docs/research/tinnitus_channels_research.md
-grep -q "Content Analysis" docs/research/tinnitus_channels_research.md
-grep -q "Engagement Metrics" docs/research/tinnitus_channels_research.md
-grep -q "Recommendations" docs/research/tinnitus_channels_research.md
+# Verify provider compiles
+python3 -m compileall -q src/ytf/providers/pixabay.py
+
+# Test search (requires API key)
+python3 -c "from ytf.providers.pixabay import PixabayProvider; p = PixabayProvider(); results = p.search('ocean waves', limit=3); print(f'Found {len(results)} results')"
+
+# Verify license is set
+python3 -c "from ytf.providers.pixabay import PixabayProvider; p = PixabayProvider(); results = p.search('rain', limit=1); assert results[0].get('license') == 'Pixabay' if results else True; print('✓ License set correctly')"
 ```
-
-## Files to Touch
-
-- `docs/research/tinnitus_channels_research.md` - Research report (new file)
-- Create `docs/research/` directory if it doesn't exist
-
-## Notes
-
-- Research should focus on channels with 10K+ subscribers or high view counts
-- Look for patterns in video length, audio types, and visual content
-- Document both what works and what doesn't work
-- Keep recommendations actionable and specific to our yt-factory pipeline
