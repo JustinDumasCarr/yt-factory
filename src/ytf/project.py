@@ -81,6 +81,21 @@ class FunnelConfig(BaseModel):
     cta_variant_id: Optional[str] = None
 
 
+class SoundbankRef(BaseModel):
+    """Reference to a sound in the global soundbank."""
+
+    sound_id: str  # Unique identifier for the sound (e.g., "rain_gentle_001")
+    volume: float = 1.0  # Volume multiplier (0.0 to 1.0, default 1.0)
+
+
+class TinnitusMixRecipe(BaseModel):
+    """Mix recipe for tinnitus channel projects (uses soundbank stems, not Suno tracks)."""
+
+    stems: list[SoundbankRef] = Field(default_factory=list)  # List of soundbank stems to mix
+    mix_type: str = "layered"  # "single" (loop one stem) or "layered" (mix multiple stems)
+    target_duration_seconds: float = 0.0  # Target duration in seconds (from target_minutes)
+
+
 class QCIssue(BaseModel):
     """A single QC issue found on a track."""
 
@@ -236,6 +251,7 @@ class Project(BaseModel):
     funnel: FunnelConfig = Field(default_factory=FunnelConfig)
     plan: Optional[PlanData] = None
     tracks: list[Track] = Field(default_factory=list)
+    tinnitus_recipe: Optional[TinnitusMixRecipe] = None  # For tinnitus channel: mix recipe using soundbank stems
     review: Optional[ReviewData] = None
     render: Optional[RenderData] = None
     youtube: Optional[YouTubeData] = None

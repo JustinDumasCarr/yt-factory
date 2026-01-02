@@ -36,6 +36,20 @@ assets/brand/<channel_id>/
   font.ttf or font.otf (custom font override, optional)
   thumbnail_template.png (optional, future use)
 
+### Soundbank folder (repo root, global)
+assets/soundbank/
+  soundbank.json (metadata: list of available sounds with IDs, paths, durations)
+  <sound_id>.mp3 (or .wav) - Reusable audio stems for tinnitus channel
+  <sound_id>.mp3
+  ...
+  
+  Example structure:
+  - soundbank.json
+  - rain_gentle_001.mp3
+  - crickets_night_001.mp3
+  - ocean_waves_001.mp3
+  - cicadas_summer_001.mp3
+
 ## project.json shape (v2 - channel-driven)
 Top-level fields:
 - project_id: string
@@ -51,6 +65,10 @@ Top-level fields:
 - video: { width: 1920, height: 1080, fps: 30 }
 - upload: { privacy: "unlisted" | "private" | "public" }
 - funnel: { landing_url?, utm_source?, utm_campaign?, cta_variant_id? }
+- tinnitus_recipe?: { stems: [{ sound_id, volume }], mix_type: "single" | "layered", target_duration_seconds }
+  - Only present for tinnitus channel projects
+  - References sounds from global soundbank (assets/soundbank/)
+  - mix_type: "single" loops one stem, "layered" mixes multiple stems
 
 State and outputs:
 - status:

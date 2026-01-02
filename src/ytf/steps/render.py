@@ -11,6 +11,7 @@ from ytf.channel import get_channel
 from ytf.logger import StepLogger
 from ytf.project import PROJECTS_DIR, RenderData, load_project, save_project, update_status
 from ytf.providers.gemini import GeminiProvider
+from ytf import soundbank
 from ytf.utils import ffmpeg
 
 
@@ -218,24 +219,59 @@ def run(project_id: str) -> None:
                     f"Missing {missing_seconds:.2f}s ({missing_minutes:.1f} min)."
                 )
 
-            # Get track indices for persistence
-            selected_indices = [track.track_index for track in available_tracks]
-
             # Prepare paths
             tracks_dir = project_dir / "tracks"
             output_dir = project_dir / "output"
             assets_dir = project_dir / "assets"
             output_dir.mkdir(exist_ok=True)
 
-            # Step 1: Concatenate audio files
-            log.info("Concatenating audio tracks...")
-            concat_audio_path = output_dir / "concat_audio.mp3"
-            audio_file_paths = [
-                project_dir / track.audio_path
-                for track in available_tracks
-            ]
-            ffmpeg.concatenate_audio_files(audio_file_paths, concat_audio_path)
-            log.info(f"Concatenated audio saved to {concat_audio_path}")
+            # Check if this is a tinnitus channel project
+            is_tinnitus = project.channel_id == "tinnitus_relief" and project.tinnitus_recipe is not None
+            
+            if is_tinnitus:
+                # Step 1: Build audio from soundbank recipe
+                log.info("Building audio from tinnitus recipe (soundbank stems)...")
+                recipe = project.tinnitus_recipe
+                
+                # Get sound paths
+                sound_paths = []
+                volumes = []
+                for stem in recipe.stems:
+                    sound_path = soundbank.get_sound_path(stem.sound_id)
+                    if not sound_path:
+                        raise ValueError(f"Soundbank sound not found: {stem.sound_id}")
+                    sound_paths.append(sound_path)
+                    volumes.append(stem.volume)
+                    sound_entry = soundbank.get_sound(stem.sound_id)
+                    log.info(f"  - {stem.sound_id}: {sound_entry.name} (volume={stem.volume})")
+                
+                # Build mixed audio
+                concat_audio_path = output_dir / "concat_audio.mp3"
+                log.info(f"Mixing {len(sound_paths)} stems to {recipe.target_duration_seconds / 60:.1f} minutes...")
+                ffmpeg.mix_layered_audio(
+                    input_paths=sound_paths,
+                    volumes=volumes,
+                    output_path=concat_audio_path,
+                    target_duration_seconds=recipe.target_duration_seconds,
+                    crossfade_seconds=2.0,
+                )
+                log.info(f"Mixed audio saved to {concat_audio_path}")
+                
+                # For tinnitus, we don't have track indices (no tracks)
+                selected_indices = []
+            else:
+                # Step 1: Concatenate audio files (standard channel)
+                log.info("Concatenating audio tracks...")
+                concat_audio_path = output_dir / "concat_audio.mp3"
+                audio_file_paths = [
+                    project_dir / track.audio_path
+                    for track in available_tracks
+                ]
+                ffmpeg.concatenate_audio_files(audio_file_paths, concat_audio_path)
+                log.info(f"Concatenated audio saved to {concat_audio_path}")
+                
+                # Get track indices for persistence
+                selected_indices = [track.track_index for track in available_tracks]
 
             # Step 2: Normalize loudness
             log.info("Normalizing audio loudness...")
@@ -527,6 +563,29 @@ def run(project_id: str) -> None:
 
             log.info(f"Pinned comment saved to {pinned_comment_path}")
 
+            # Step 6.6: Generate shorts script
+            log.info("Generating shorts script...")
+            shorts_script_path = output_dir / "shorts_script.txt"
+
+            # Get theme and channel name for template
+            theme = project.theme
+            channel_name = channel.name if channel else "Music Compilation"
+            
+            # Simple 5-line template
+            shorts_script_lines = [
+                f"Shorts Script: {theme}",
+                f"Channel: {channel_name}",
+                f"",
+                f"Use clips from this {channel_name.lower()} compilation to create engaging Shorts.",
+                f"Focus on the best moments and include a CTA to the full video."
+            ]
+
+            with open(shorts_script_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(shorts_script_lines))
+                f.write("\n")
+
+            log.info(f"Shorts script saved to {shorts_script_path}")
+
             # Step 7: Persist render data to project.json
             thumbnail_path_str = None
             if thumbnail_created and thumbnail_path.exists():
@@ -558,6 +617,7 @@ def run(project_id: str) -> None:
             log.info(f"  - Chapters: {chapters_path}")
             log.info(f"  - Description: {description_path}")
             log.info(f"  - Pinned comment: {pinned_comment_path}")
+            log.info(f"  - Shorts script: {shorts_script_path}")
 
         except Exception as e:
             update_status(project, "render", error=e)

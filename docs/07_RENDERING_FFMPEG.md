@@ -16,9 +16,14 @@ Rendering happens locally.
 
 ## Thumbnail Creation
 - Creates `assets/thumbnail.png` with text overlay
-- Overlays album title (from YouTube metadata) at top
-- Overlays theme/prompt text at bottom
-- White text with black outline for readability
+- Overlays album title (from YouTube metadata) and channel name
+- Configurable via channel `thumbnail_style` settings:
+  - **Layout variants**: `big_title_small_subtitle` (default), `centered_title`, `bottom_title`, `top_title`
+  - **Background overlay**: Optional rgba overlay for text readability (e.g., `black@0.3` for 30% opacity black)
+  - **Text color**: Customizable via `text_color` (FFmpeg format: `0xRRGGBB`, default: `0xF6F6F0`)
+  - **Font sizes**: Auto-calculated or overridden via `font_size_title` and `font_size_subtitle`
+  - **Custom fonts**: Supports custom fonts from `assets/brand/<channel_id>/font.ttf` or `font.otf`
+- White text with black outline for readability (default)
 - Same dimensions as background (1920x1080)
 - **Hard gate**: if thumbnail creation fails, render fails (no upload)
 

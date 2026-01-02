@@ -11,6 +11,6 @@ Steps:
    - Goal
    - Acceptance Criteria
    - Verify commands
-4) Immediately change the task status to "in progress" or the closest equivalent you have configured.
+4) Immediately change the task status to "in progress".
 5) Create a local file TASK.md with the extracted spec and begin work following the repo rules.
 If there are zero READY tasks, output: "No READY tasks. Move tasks from SPEC NEEDED to READY after adding Goal, Scope, Acceptance Criteria, Verify."

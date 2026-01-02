@@ -1,0 +1,90 @@
+channel_id: tinnitus_relief
+name: Tinnitus Relief Sounds
+intent: sleep
+
+duration_rules:
+  target_minutes: 240  # 4 hours default
+  min_minutes: 240  # 4 hours minimum
+  max_minutes: 480  # 8 hours maximum
+  track_count: 0  # Not used for tinnitus (uses soundbank recipe instead)
+  min_track_seconds: 60  # Not used, but required by schema
+
+prompt_constraints:
+  default_instrumental: true
+  default_vocals: false
+  energy_level: low
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+    - health
+    - doctor
+    - medication
+    - prescription
+  style_guidance: "Natural ambient sounds for tinnitus relief. Focus on gentle, continuous sounds like rain, ocean waves, crickets, cicadas, white noise, or nature ambience. No sudden changes or loud sounds."
+
+title_templates:
+  - template: "{theme} | Tinnitus Relief Sounds"
+    example: "Rain & Ocean Waves | Tinnitus Relief Sounds"
+  - template: "{theme} - {duration} Hours"
+    example: "Nature Sounds for Tinnitus - 4 Hours"
+  - template: "{theme} Background Sounds"
+    example: "Tinnitus Relief Background Sounds"
+
+description_template:
+  template: |
+    {theme} - Gentle background sounds designed to help mask tinnitus and promote relaxation.
+
+    {chapters}
+
+    {cta}
+  cta_block: |
+    🔊 These sounds are designed to help mask tinnitus and create a calming environment.
+
+    For more background sounds and focus music, download Focus Sessions: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}
+
+cta_variants:
+  - variant_id: app_tinnitus
+    short_text: "🔊 More sounds in Focus Sessions"
+    long_text: "🔊 These sounds are designed to help mask tinnitus. For more background sounds and focus music, download Focus Sessions: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+  - variant_id: app_download
+    short_text: "Download Focus Sessions app"
+    long_text: "Download Focus Sessions for more tinnitus relief sounds and focus music: {landing_url}?utm_source={utm_source}&utm_campaign={utm_campaign}"
+
+tag_rules:
+  whitelist:
+    - tinnitus relief
+    - background sounds
+    - ambient sounds
+    - white noise
+    - nature sounds
+    - rain sounds
+    - ocean sounds
+    - sleep sounds
+    - relaxation
+  banned_terms:
+    - medical
+    - cure
+    - treatment
+    - therapy
+    - health
+    - doctor
+    - medication
+    - prescription
+    - healing
+
+thumbnail_style:
+  font_family: Cinzel
+  layout_variant: big_title_small_subtitle
+  safe_words:
+    - medical
+    - cure
+    - treatment
+  background_overlay: "black@0.4"  # Darker overlay for better text readability on nature images
+
+upload_defaults:
+  privacy: unlisted
+  category_id: "10"  # Music category
+  default_language: en
+  made_for_kids: false

@@ -195,6 +195,78 @@ def logs_cmd(
         raise typer.Exit(1)
 
 
+@app.command(name="soundbank")
+def soundbank_cmd(
+    action: str = typer.Argument(..., help="Action: 'ls', 'add', or 'generate'"),
+    sound_id: str = typer.Option(None, "--id", help="Sound ID (required for 'add' and 'generate')"),
+    file_path: str = typer.Option(None, "--file", help="Path to audio file (required for 'add')"),
+    name: str = typer.Option(None, "--name", help="Human-readable name (required for 'add' and 'generate')"),
+    style: str = typer.Option(None, "--style", help="Music style for Suno (required for 'generate')"),
+    prompt: str = typer.Option(None, "--prompt", help="Audio description for Suno (required for 'generate')"),
+    description: str = typer.Option(None, "--description", help="Optional description"),
+) -> None:
+    """Manage global soundbank of reusable audio stems for tinnitus channel."""
+    from ytf import soundbank
+    
+    if action == "ls":
+        sounds = soundbank.list_sounds()
+        if not sounds:
+            typer.echo("Soundbank is empty. Use 'ytf soundbank add' or 'ytf soundbank generate' to add sounds.")
+            return
+        
+        typer.echo(f"Soundbank ({len(sounds)} sounds):")
+        for s in sounds:
+            duration_min = s.duration_seconds / 60
+            desc = f" - {s.description}" if s.description else ""
+            typer.echo(f"  {s.sound_id}: {s.name} ({duration_min:.1f} min){desc}")
+            typer.echo(f"    File: {s.filename}, Source: {s.source}")
+    
+    elif action == "add":
+        if not sound_id or not file_path or not name:
+            typer.echo("Error: --id, --file, and --name are required for 'add'", err=True)
+            raise typer.Exit(1)
+        
+        try:
+            entry = soundbank.add_sound_from_file(
+                file_path=file_path,
+                sound_id=sound_id,
+                name=name,
+                description=description,
+                source="manual",
+            )
+            typer.echo(f"Added sound: {entry.sound_id} ({entry.name})")
+            typer.echo(f"  Duration: {entry.duration_seconds / 60:.1f} minutes")
+            typer.echo(f"  File: {entry.filename}")
+        except Exception as e:
+            typer.echo(f"Error: {e}", err=True)
+            raise typer.Exit(1)
+    
+    elif action == "generate":
+        if not sound_id or not name or not style or not prompt:
+            typer.echo("Error: --id, --name, --style, and --prompt are required for 'generate'", err=True)
+            raise typer.Exit(1)
+        
+        try:
+            typer.echo(f"Generating sound via Suno: {name}...")
+            entry = soundbank.generate_sound_via_suno(
+                sound_id=sound_id,
+                name=name,
+                style=style,
+                prompt=prompt,
+                description=description,
+            )
+            typer.echo(f"Generated sound: {entry.sound_id} ({entry.name})")
+            typer.echo(f"  Duration: {entry.duration_seconds / 60:.1f} minutes")
+            typer.echo(f"  File: {entry.filename}")
+        except Exception as e:
+            typer.echo(f"Error: {e}", err=True)
+            raise typer.Exit(1)
+    
+    else:
+        typer.echo(f"Error: Unknown action '{action}'. Use 'ls', 'add', or 'generate'", err=True)
+        raise typer.Exit(1)
+
+
 def main() -> None:
     """Main entry point for the CLI."""
     app()

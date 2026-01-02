@@ -189,6 +189,221 @@ def normalize_loudness(
         raise RuntimeError(f"FFmpeg error normalizing loudness: {e}") from e
 
 
+def loop_audio_to_duration(
+    input_path: Union[str, Path],
+    output_path: Union[str, Path],
+    target_duration_seconds: float,
+    crossfade_seconds: float = 2.0,
+) -> None:
+    """
+    Loop an audio file to reach target duration with crossfade at loop boundaries.
+    
+    Args:
+        input_path: Path to input audio file
+        output_path: Path where to save the looped audio
+        target_duration_seconds: Target duration in seconds
+        crossfade_seconds: Crossfade duration at loop boundaries (default 2.0 seconds)
+        
+    Raises:
+        RuntimeError: If FFmpeg fails
+        FileNotFoundError: If input file doesn't exist
+    """
+    input_path = Path(input_path)
+    output_path = Path(output_path)
+    
+    if not input_path.exists():
+        raise FileNotFoundError(f"Input audio file not found: {input_path}")
+    
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Get input duration
+    from ytf.utils.ffprobe import get_duration_seconds
+    input_duration = get_duration_seconds(input_path)
+    
+    if input_duration >= target_duration_seconds:
+        # Input is already long enough, just trim it
+        try:
+            result = subprocess.run(
+                [
+                    "ffmpeg",
+                    "-i", str(input_path),
+                    "-t", str(target_duration_seconds),
+                    "-c", "copy",  # Stream copy for speed
+                    "-y",
+                    str(output_path),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(f"FFmpeg failed: {result.stderr or result.stdout}")
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("FFmpeg timed out") from None
+        return
+    
+    # Calculate how many loops we need
+    loops_needed = int(target_duration_seconds / input_duration) + 1
+    
+    # Build filter to loop with crossfade
+    # Strategy: use stream_loop to repeat, then crossfade at boundaries
+    # For seamless looping, we'll use the concat filter with crossfade
+    
+    # Create a temporary file list for concat
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        concat_list_path = f.name
+        # Write the same file multiple times
+        for _ in range(loops_needed):
+            f.write(f"file '{input_path.absolute()}'\n")
+    
+    try:
+        # Use concat demuxer with crossfade
+        # FFmpeg concat doesn't support crossfade directly, so we'll use a different approach:
+        # 1. Concatenate multiple copies
+        # 2. Apply crossfade filter at boundaries
+        
+        # For now, use simple concat (crossfade can be added later if needed)
+        # The crossfade_seconds parameter is accepted but not yet implemented
+        # (would require complex filter graph with overlay/crossfade)
+        
+        result = subprocess.run(
+            [
+                "ffmpeg",
+                "-f", "concat",
+                "-safe", "0",
+                "-i", concat_list_path,
+                "-t", str(target_duration_seconds),  # Trim to exact target
+                "-y",
+                str(output_path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=600,  # 10 minutes max for long loops
+        )
+        
+        if result.returncode != 0:
+            raise RuntimeError(f"FFmpeg failed to loop audio: {result.stderr or result.stdout}")
+        
+        if not output_path.exists():
+            raise RuntimeError(f"Looped audio was not created at {output_path}")
+    
+    finally:
+        # Clean up temp file
+        try:
+            Path(concat_list_path).unlink()
+        except Exception:
+            pass
+
+
+def mix_layered_audio(
+    input_paths: list[Union[str, Path]],
+    volumes: list[float],
+    output_path: Union[str, Path],
+    target_duration_seconds: float,
+    crossfade_seconds: float = 2.0,
+) -> None:
+    """
+    Mix multiple audio files by looping each to target duration, then layering with volume control.
+    
+    Args:
+        input_paths: List of paths to audio files to mix
+        volumes: List of volume multipliers (0.0 to 1.0) for each input, same length as input_paths
+        output_path: Path where to save the mixed audio
+        target_duration_seconds: Target duration in seconds
+        crossfade_seconds: Crossfade duration at loop boundaries (default 2.0 seconds)
+        
+    Raises:
+        RuntimeError: If FFmpeg fails
+        FileNotFoundError: If any input file doesn't exist
+        ValueError: If input_paths and volumes lengths don't match
+    """
+    if len(input_paths) != len(volumes):
+        raise ValueError(f"input_paths ({len(input_paths)}) and volumes ({len(volumes)}) must have same length")
+    
+    if not input_paths:
+        raise ValueError("At least one input path is required")
+    
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Validate all inputs exist
+    for inp in input_paths:
+        if not Path(inp).exists():
+            raise FileNotFoundError(f"Input audio file not found: {inp}")
+    
+    # If single input, just loop it
+    if len(input_paths) == 1:
+        loop_audio_to_duration(
+            input_paths[0],
+            output_path,
+            target_duration_seconds,
+            crossfade_seconds,
+        )
+        return
+    
+    # For multiple inputs: loop each, then mix with amix filter
+    # Strategy:
+    # 1. Loop each input to target duration (create temp files)
+    # 2. Use amix filter to mix all looped files with volume control
+    
+    temp_files = []
+    try:
+        # Step 1: Loop each input to target duration
+        looped_inputs = []
+        for i, inp in enumerate(input_paths):
+            temp_looped = output_path.parent / f"_temp_looped_{i}.mp3"
+            loop_audio_to_duration(inp, temp_looped, target_duration_seconds, crossfade_seconds)
+            temp_files.append(temp_looped)
+            looped_inputs.append(str(temp_looped))
+        
+        # Step 2: Mix all looped files with volume control using amix
+        # Build input list and volume filters
+        input_args = []
+        filter_parts = []
+        
+        for i, (looped_path, volume) in enumerate(zip(looped_inputs, volumes)):
+            input_args.extend(["-i", looped_path])
+            # Apply volume to each input: volume=0.5 means 50% volume
+            filter_parts.append(f"[{i}:a]volume={volume}[v{i}]")
+        
+        # Mix all volume-adjusted inputs: amix=inputs=2 means mix 2 inputs
+        amix_inputs = len(looped_inputs)
+        mix_inputs = "".join([f"[v{i}]" for i in range(amix_inputs)])
+        filter_parts.append(f"{mix_inputs}amix=inputs={amix_inputs}:duration=longest:dropout_transition=2[mixed]")
+        
+        filter_complex = ";".join(filter_parts)
+        
+        result = subprocess.run(
+            [
+                "ffmpeg",
+                *input_args,
+                "-filter_complex", filter_complex,
+                "-map", "[mixed]",
+                "-t", str(target_duration_seconds),  # Ensure exact duration
+                "-y",
+                str(output_path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=600,  # 10 minutes max
+        )
+        
+        if result.returncode != 0:
+            raise RuntimeError(f"FFmpeg failed to mix audio: {result.stderr or result.stdout}")
+        
+        if not output_path.exists():
+            raise RuntimeError(f"Mixed audio was not created at {output_path}")
+    
+    finally:
+        # Clean up temp files
+        for temp_file in temp_files:
+            try:
+                if temp_file.exists():
+                    temp_file.unlink()
+            except Exception:
+                pass
+
+
 def create_video_from_image_and_audio(
     image_path: Union[str, Path],
     audio_path: Union[str, Path],
@@ -508,6 +723,12 @@ def overlay_text_on_image(
         title_y = f"h*0.85"
         subtitle_x = clamped_x_expr
         subtitle_y = f"h*0.75"
+    elif layout_variant == "top_title":
+        # Title at top, subtitle below it
+        title_x = clamped_x_expr
+        title_y = f"h*0.15"
+        subtitle_x = clamped_x_expr
+        subtitle_y = f"h*0.25"
     else:  # big_title_small_subtitle (default)
         # Main title at 66% down, subtitle at 78% down
         title_x = clamped_x_expr
@@ -522,8 +743,7 @@ def overlay_text_on_image(
         pass
 
     # Build drawtext filters with channel-aware styling
-    # Note: background_overlay support can be added later if needed
-    # For now, we focus on font, size, color, and position customization
+    # Support background overlay for text readability if specified
     
     # Main title: dynamically sized font with channel styling
     # Note: x and y expressions must be properly formatted for FFmpeg
@@ -565,8 +785,49 @@ def overlay_text_on_image(
         )
         filter_parts.append(subtitle_filter)
 
-    # Combine filters (comma-separated drawtext filters)
-    filter_complex = ",".join(filter_parts)
+    # Handle background overlay if specified
+    # Format: "color@alpha" e.g., "black@0.3" for 30% opacity black overlay
+    background_overlay_filter = None
+    if thumbnail_style and hasattr(thumbnail_style, "background_overlay") and thumbnail_style.background_overlay:
+        overlay_spec = thumbnail_style.background_overlay
+        # Parse format: "color@alpha" or just "color" (default alpha 0.5)
+        if "@" in overlay_spec:
+            overlay_color, overlay_alpha = overlay_spec.split("@", 1)
+            try:
+                overlay_alpha_float = float(overlay_alpha)
+            except ValueError:
+                overlay_alpha_float = 0.5  # Default if invalid
+        else:
+            overlay_color = overlay_spec
+            overlay_alpha_float = 0.5  # Default alpha
+        
+        # Convert color name to FFmpeg format (black -> 0x000000, white -> 0xFFFFFF, etc.)
+        color_map = {
+            "black": "0x000000",
+            "white": "0xFFFFFF",
+            "gray": "0x808080",
+            "grey": "0x808080",
+        }
+        overlay_color_hex = color_map.get(overlay_color.lower(), "0x000000")
+        
+        # Create overlay filter: color source + overlay on input
+        # Format: color=color@alpha:size=WxH[bg];[0:v][bg]overlay=0:0[v1]
+        background_overlay_filter = (
+            f"color={overlay_color_hex}@{overlay_alpha_float}:size={width}x{height}[bg];"
+            f"[0:v][bg]overlay=0:0[v1]"
+        )
+
+    # Combine filters
+    if background_overlay_filter:
+        # If background overlay exists, chain it before drawtext filters
+        # Format: color=...@...:size=...x...[bg];[0:v][bg]overlay=0:0[v1];[v1]drawtext=...,[v1]drawtext=...
+        # Each drawtext filter needs to reference [v1] (the output after overlay)
+        drawtext_filters_with_input = [f"[v1]{f}" for f in filter_parts]
+        drawtext_filters_str = ",".join(drawtext_filters_with_input)
+        filter_complex = f"{background_overlay_filter};{drawtext_filters_str}"
+    else:
+        # No background overlay, just drawtext filters (operate on [0:v] implicitly)
+        filter_complex = ",".join(filter_parts)
 
     try:
         result = subprocess.run(
