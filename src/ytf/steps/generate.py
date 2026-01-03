@@ -55,9 +55,39 @@ def _generate_tinnitus_recipe(project, log) -> None:
     # Calculate target duration
     target_duration_seconds = project.target_minutes * 60.0
     
-    # Simple recipe selection: use first 2-3 sounds with default volumes
-    # In future, this could be more sophisticated (channel-driven selection)
-    selected_sounds = available_sounds[:min(3, len(available_sounds))]
+    # Smart recipe selection: try to match theme keywords to sound names/descriptions
+    # Extract keywords from theme (e.g., "Crickets and Ocean Waves" -> ["crickets", "ocean", "waves"])
+    theme_lower = project.theme.lower()
+    theme_keywords = theme_lower.replace(" and ", " ").replace(",", " ").split()
+    
+    selected_sounds = []
+    matched_sound_ids = set()
+    
+    # First pass: try to match sounds by keywords in name/description
+    for keyword in theme_keywords:
+        for sound in available_sounds:
+            if sound.sound_id in matched_sound_ids:
+                continue
+            sound_text = f"{sound.name} {sound.description or ''}".lower()
+            if keyword in sound_text or keyword in sound.sound_id.lower():
+                selected_sounds.append(sound)
+                matched_sound_ids.add(sound.sound_id)
+                if len(selected_sounds) >= 3:
+                    break
+        if len(selected_sounds) >= 3:
+            break
+    
+    # If we didn't find enough matches, add remaining sounds
+    if len(selected_sounds) < 2:
+        for sound in available_sounds:
+            if sound.sound_id not in matched_sound_ids:
+                selected_sounds.append(sound)
+                if len(selected_sounds) >= 3:
+                    break
+    
+    # Ensure we have at least one sound
+    if not selected_sounds:
+        selected_sounds = available_sounds[:1]
     
     stems = [
         SoundbankRef(sound_id=s.sound_id, volume=1.0) for s in selected_sounds
@@ -588,4 +618,38 @@ def _generate_suno_tracks(project, log) -> None:
     log.info(f"Generate step completed: {successful} successful, {failed} failed")
     update_status(project, "generate", error=None)
     save_project(project)
+
+
+def run(project_id: str) -> None:
+    """
+    Run the generate step for a project.
+    
+    For tinnitus_relief channel: generates a recipe from soundbank (no Suno calls).
+    For other channels: generates tracks via Suno API.
+    
+    Args:
+        project_id: Project ID
+    """
+    project = load_project(project_id)
+    
+    with StepLogger(project_id, "generate") as log:
+        try:
+            update_status(project, "generate")
+            save_project(project)
+            
+            log.info("Starting generate step")
+            
+            # Check if this is a tinnitus channel project
+            if project.channel_id == "tinnitus_relief":
+                log.info("Tinnitus channel detected: generating recipe from soundbank...")
+                _generate_tinnitus_recipe(project, log)
+            else:
+                log.info("Standard channel: generating tracks via Suno...")
+                _generate_suno_tracks(project, log)
+                
+        except Exception as e:
+            log.error(f"Generate step failed: {e}", exc_info=True)
+            update_status(project, "generate", error=str(e))
+            save_project(project)
+            raise
 

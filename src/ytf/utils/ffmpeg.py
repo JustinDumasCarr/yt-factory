@@ -461,6 +461,14 @@ def create_video_from_image_and_audio(
 
         duration = float(probe_result.stdout.strip())
 
+        # Calculate dynamic timeout based on video duration
+        # For long videos (4+ hours), encoding can take significant time
+        # Use a formula: duration * 0.05 (5% of video length) + 5 minutes buffer
+        # Minimum 10 minutes, maximum 2 hours
+        timeout_seconds = max(600, min(int(duration * 0.05) + 300, 7200))
+        log_msg = f"Estimated encoding time: {timeout_seconds // 60} minutes (video duration: {duration / 60:.1f} minutes)"
+        print(f"[FFmpeg] {log_msg}")
+
         # Create video by looping image for the duration of the audio
         result = subprocess.run(
             [
@@ -481,7 +489,7 @@ def create_video_from_image_and_audio(
             ],
             capture_output=True,
             text=True,
-            timeout=600,  # 10 minutes max
+            timeout=timeout_seconds,
         )
 
         if result.returncode != 0:

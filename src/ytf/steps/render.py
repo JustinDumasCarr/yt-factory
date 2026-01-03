@@ -159,65 +159,69 @@ def run(project_id: str) -> None:
                     and (track.qc is None or track.qc.passed)
                 ]
 
-            if not available_tracks:
-                error_msg = "No available tracks to render. All tracks are failed, missing audio files, or failed QC."
-                if approved_indices:
-                    error_msg += f" Approved tracks: {sorted(approved_indices)}"
-                raise RuntimeError(error_msg)
-
-            # Sort by track_index to maintain order
-            available_tracks.sort(key=lambda t: t.track_index)
-
-            log.info(f"Found {len(available_tracks)} available tracks")
-            total_duration = sum(track.duration_seconds for track in available_tracks)
-            log.info(f"Total duration: {format_timestamp(total_duration)} ({total_duration:.2f} seconds)")
-
-            # Check if duration meets target/minimum (fail fast if underfilled)
-            # project.json is the source of truth; channel profile provides defaults.
-            target_minutes = project.target_minutes
-            min_minutes = None
-            if channel:
-                if target_minutes is None:
-                    target_minutes = channel.duration_rules.target_minutes
-                min_minutes = channel.duration_rules.min_minutes
-
-            if target_minutes is None:
-                # Should not happen (new step always sets it), but keep render defensive.
-                target_minutes = 60
-
-            target_seconds = target_minutes * 60
-            min_seconds = None
-            if min_minutes is not None:
-                # If user explicitly created a shorter project than the channel minimum,
-                # honor the project and don't block render with an impossible minimum.
-                if project.target_minutes is not None and project.target_minutes < min_minutes:
-                    log.warning(
-                        f"Project target_minutes ({project.target_minutes}) is below channel min_minutes "
-                        f"({min_minutes}). Honoring project.json for this render."
-                    )
-                    min_minutes = project.target_minutes
-                min_seconds = (min_minutes or 0) * 60
-
-            if min_seconds is not None and total_duration < min_seconds:
-                    missing_seconds = min_seconds - total_duration
-                    missing_minutes = missing_seconds / 60
-                    error_msg = (
-                        f"Insufficient track duration: {total_duration:.2f}s ({total_duration/60:.1f} min) "
-                        f"is below minimum {min_seconds}s ({min_minutes} min). "
-                        f"Need {missing_seconds:.2f}s ({missing_minutes:.1f} min) more. "
-                        f"Channel: {project.channel_id}"
-                    )
-                    log.error(error_msg)
+            # Check if this is a tinnitus channel project (skip tracks and duration checks)
+            is_tinnitus = project.channel_id == "tinnitus_relief" and project.tinnitus_recipe is not None
+            
+            if not is_tinnitus:
+                if not available_tracks:
+                    error_msg = "No available tracks to render. All tracks are failed, missing audio files, or failed QC."
+                    if approved_indices:
+                        error_msg += f" Approved tracks: {sorted(approved_indices)}"
                     raise RuntimeError(error_msg)
 
-            if total_duration < target_seconds:
-                missing_seconds = target_seconds - total_duration
-                missing_minutes = missing_seconds / 60
-                log.warning(
-                    f"Total duration {total_duration:.2f}s ({total_duration/60:.1f} min) "
-                    f"is below target {target_seconds}s ({target_minutes} min). "
-                    f"Missing {missing_seconds:.2f}s ({missing_minutes:.1f} min)."
-                )
+                # Sort by track_index to maintain order
+                available_tracks.sort(key=lambda t: t.track_index)
+
+                log.info(f"Found {len(available_tracks)} available tracks")
+                total_duration = sum(track.duration_seconds for track in available_tracks)
+                log.info(f"Total duration: {format_timestamp(total_duration)} ({total_duration:.2f} seconds)")
+
+                # Check if duration meets target/minimum (fail fast if underfilled)
+                # project.json is the source of truth; channel profile provides defaults.
+                target_minutes = project.target_minutes
+                min_minutes = None
+                if channel:
+                    if target_minutes is None:
+                        target_minutes = channel.duration_rules.target_minutes
+                    min_minutes = channel.duration_rules.min_minutes
+
+                if target_minutes is None:
+                    # Should not happen (new step always sets it), but keep render defensive.
+                    target_minutes = 60
+
+                target_seconds = target_minutes * 60
+                min_seconds = None
+                if min_minutes is not None:
+                    # If user explicitly created a shorter project than the channel minimum,
+                    # honor the project and don't block render with an impossible minimum.
+                    if project.target_minutes is not None and project.target_minutes < min_minutes:
+                        log.warning(
+                            f"Project target_minutes ({project.target_minutes}) is below channel min_minutes "
+                            f"({min_minutes}). Honoring project.json for this render."
+                        )
+                        min_minutes = project.target_minutes
+                    min_seconds = (min_minutes or 0) * 60
+
+                if min_seconds is not None and total_duration < min_seconds:
+                        missing_seconds = min_seconds - total_duration
+                        missing_minutes = missing_seconds / 60
+                        error_msg = (
+                            f"Insufficient track duration: {total_duration:.2f}s ({total_duration/60:.1f} min) "
+                            f"is below minimum {min_seconds}s ({min_minutes} min). "
+                            f"Need {missing_seconds:.2f}s ({missing_minutes:.1f} min) more. "
+                            f"Channel: {project.channel_id}"
+                        )
+                        log.error(error_msg)
+                        raise RuntimeError(error_msg)
+
+                if total_duration < target_seconds:
+                    missing_seconds = target_seconds - total_duration
+                    missing_minutes = missing_seconds / 60
+                    log.warning(
+                        f"Total duration {total_duration:.2f}s ({total_duration/60:.1f} min) "
+                        f"is below target {target_seconds}s ({target_minutes} min). "
+                        f"Missing {missing_seconds:.2f}s ({missing_minutes:.1f} min)."
+                    )
 
             # Prepare paths
             tracks_dir = project_dir / "tracks"
@@ -225,9 +229,6 @@ def run(project_id: str) -> None:
             assets_dir = project_dir / "assets"
             output_dir.mkdir(exist_ok=True)
 
-            # Check if this is a tinnitus channel project
-            is_tinnitus = project.channel_id == "tinnitus_relief" and project.tinnitus_recipe is not None
-            
             if is_tinnitus:
                 # Step 1: Build audio from soundbank recipe
                 log.info("Building audio from tinnitus recipe (soundbank stems)...")
