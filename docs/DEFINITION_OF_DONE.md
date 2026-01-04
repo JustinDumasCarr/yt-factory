@@ -114,3 +114,15 @@ Done when:
   - logs clearly indicate the failing step
   - project.json.last_error is populated
   - prior successful outputs remain intact
+
+---
+
+## Engineering / Repo Definition of Done
+
+For all code changes (features, fixes, refactors):
+
+- [ ] **Verification passes**: `scripts/verify.sh` exits 0 (offline, no API keys required)
+- [ ] **Evidence documented**: `specs/<feature-id>/evidence.md` updated with verify output (or referenced if in PR)
+- [ ] **Branch/PR workflow**: Work is on a feature branch (`feature/<name>` or `fix/<name>`), never committed directly to `main`
+- [ ] **Tests pass**: Unit tests (pytest) pass as part of verification
+- [ ] **No core invariants violated**: See `AGENTS.md` for core invariants that must be preserved

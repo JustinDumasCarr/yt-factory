@@ -10,16 +10,15 @@ help:
 	@echo "make next              Print the next unchecked task id (T###)"
 	@echo "make verify TASK=T001  Run Verify commands for task"
 	@echo "make done TASK=T001    Mark task done (use FORCE=1 to actually flip)"
-	@echo "make test              Run repo verification (fast smoke checks)"
+	@echo "make test              Run repo verification (offline smoke checks)"
 	@echo "make check             Alias for test"
-	@echo "make doctor            Run ytf doctor"
+	@echo "make doctor            Run ytf doctor (full checks including API keys)"
+	@echo "make doctor-offline    Run offline doctor (local tools only, no API keys)"
 
-# ---- Repo verification (thin wrappers) ----
+# ---- Repo verification (offline, no API keys required) ----
 .PHONY: test
 test:
-	@$(PY) -m compileall -q src
-	@$(PY_ENV) $(PY) -m ytf --help >/dev/null
-	@$(PY_ENV) $(PY) -m ytf doctor
+	@bash scripts/verify.sh
 
 .PHONY: check
 check: test
@@ -27,6 +26,14 @@ check: test
 .PHONY: doctor
 doctor:
 	@$(PY_ENV) $(PY) -m ytf doctor
+
+.PHONY: doctor-offline
+doctor-offline:
+	@echo "Checking local prerequisites (offline, no API keys)..."
+	@$(PY) --version
+	@command -v ffmpeg >/dev/null 2>&1 && echo "✓ FFmpeg found" || echo "✗ FFmpeg not found"
+	@command -v ffprobe >/dev/null 2>&1 && echo "✓ FFprobe found" || echo "✗ FFprobe not found"
+	@mkdir -p projects && test -w projects && echo "✓ Projects directory writable" || echo "✗ Projects directory not writable"
 
 .PHONY: smoke
 smoke:
