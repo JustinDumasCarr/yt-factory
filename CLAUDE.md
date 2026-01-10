@@ -103,7 +103,7 @@ make lint
 
 ## Vibe-Kanban
 
-- Project ID: `<to-be-assigned>`
+- Project ID: `a076cc8b-8555-4d31-9eff-60c7d7b16b2b`
 - `list_tasks` - See all tasks
 - `update_task` - Change status (todo/inprogress/done)
 - `/sync-tasks` - Sync status to TASKS.md
