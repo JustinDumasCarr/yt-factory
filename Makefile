@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-TASKS_FILE := docs/TASKS.md
+TASKS_FILE := TASKS.md
 PY ?= $(shell if [ -x ./venv/bin/python ]; then echo ./venv/bin/python; else echo python3; fi)
 PY_ENV := PYTHONPATH=src
 
@@ -12,16 +12,34 @@ help:
 	@echo "make done TASK=T001    Mark task done (use FORCE=1 to actually flip)"
 	@echo "make test              Run repo verification (offline smoke checks)"
 	@echo "make check             Alias for test"
+	@echo "make format            Format code with black + ruff"
+	@echo "make lint              Check code with ruff"
+	@echo "make check-format      Check formatting without changes (CI)"
 	@echo "make doctor            Run ytf doctor (full checks including API keys)"
 	@echo "make doctor-offline    Run offline doctor (local tools only, no API keys)"
 
 # ---- Repo verification (offline, no API keys required) ----
 .PHONY: test
 test:
-	@bash scripts/verify.sh
+	@PY=$(PY) bash scripts/verify.sh
 
 .PHONY: check
 check: test
+
+# ---- Code quality ----
+.PHONY: format
+format:
+	@$(PY) -m black src tests
+	@$(PY) -m ruff check --fix src tests
+
+.PHONY: lint
+lint:
+	@$(PY) -m ruff check src tests
+
+.PHONY: check-format
+check-format:
+	@$(PY) -m black --check src tests
+	@$(PY) -m ruff check src tests
 
 .PHONY: doctor
 doctor:

@@ -4,10 +4,9 @@ Channel profile loader: reads YAML channel configs and validates with Pydantic.
 Each channel profile defines defaults, constraints, templates, and upload settings.
 """
 
-import yaml
 from pathlib import Path
-from typing import Optional
 
+import yaml
 from pydantic import BaseModel, Field
 
 
@@ -64,13 +63,21 @@ class ThumbnailStyle(BaseModel):
     """Thumbnail style preset."""
 
     font_family: str = "Cinzel"
-    layout_variant: str = "big_title_small_subtitle"  # Options: big_title_small_subtitle (default), centered_title, bottom_title, top_title
+    layout_variant: str = (
+        "big_title_small_subtitle"  # Options: big_title_small_subtitle (default), centered_title, bottom_title, top_title
+    )
     safe_words: list[str] = Field(default_factory=list)  # Words to avoid in thumbnails
-    font_size_title: Optional[int] = None  # Override calculated font size for title (default: auto-calculated)
-    font_size_subtitle: Optional[int] = None  # Override calculated font size for subtitle (default: auto-calculated)
+    font_size_title: int | None = (
+        None  # Override calculated font size for title (default: auto-calculated)
+    )
+    font_size_subtitle: int | None = (
+        None  # Override calculated font size for subtitle (default: auto-calculated)
+    )
     text_color: str = "0xF6F6F0"  # FFmpeg color format (0xRRGGBB), default: warm off-white
-    text_position: Optional[str] = None  # Override position (default: based on layout_variant)
-    background_overlay: Optional[str] = None  # Optional rgba overlay for text readability (e.g., "black@0.3", "white@0.5"). Format: "color@alpha" where color is black/white/gray and alpha is 0.0-1.0
+    text_position: str | None = None  # Override position (default: based on layout_variant)
+    background_overlay: str | None = (
+        None  # Optional rgba overlay for text readability (e.g., "black@0.3", "white@0.5"). Format: "color@alpha" where color is black/white/gray and alpha is 0.0-1.0
+    )
 
 
 class UploadDefaults(BaseModel):
@@ -119,12 +126,10 @@ def get_channel(channel_id: str) -> ChannelProfile:
     channel_path = CHANNELS_DIR / f"{channel_id}.yaml"
 
     if not channel_path.exists():
-        raise FileNotFoundError(
-            f"Channel config not found: {channel_id}. Expected {channel_path}"
-        )
+        raise FileNotFoundError(f"Channel config not found: {channel_id}. Expected {channel_path}")
 
     try:
-        with open(channel_path, "r", encoding="utf-8") as f:
+        with open(channel_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
     except yaml.YAMLError as e:
         raise ValueError(f"Invalid YAML in channel config: {e}") from e
@@ -155,4 +160,3 @@ def list_channels() -> list[str]:
         channels.append(channel_id)
 
     return sorted(channels)
-

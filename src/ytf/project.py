@@ -9,10 +9,8 @@ import json
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
-
+from pydantic import BaseModel, Field, model_validator
 
 # Step enum values
 StepType = str  # "new" | "plan" | "generate" | "review" | "render" | "upload" | "done"
@@ -28,17 +26,19 @@ class LastError(BaseModel):
     message: str
     stack: str
     at: str  # ISO timestamp
-    kind: Optional[str] = None  # Error category: auth, rate_limit, timeout, provider_http, validation, ffmpeg, unknown
-    provider: Optional[str] = None  # Provider name: gemini, suno, youtube
-    raw: Optional[str] = None  # Raw error details (truncated if huge)
+    kind: str | None = (
+        None  # Error category: auth, rate_limit, timeout, provider_http, validation, ffmpeg, unknown
+    )
+    provider: str | None = None  # Provider name: gemini, suno, youtube
+    raw: str | None = None  # Raw error details (truncated if huge)
 
 
 class ProjectStatus(BaseModel):
     """Current status of the project."""
 
     current_step: StepType = "new"
-    last_successful_step: Optional[StepType] = None
-    last_error: Optional[LastError] = None
+    last_successful_step: StepType | None = None
+    last_error: LastError | None = None
     attempts: dict[str, int] = Field(default_factory=dict)  # Step -> attempt count
 
 
@@ -75,10 +75,10 @@ class UploadConfig(BaseModel):
 class FunnelConfig(BaseModel):
     """Funnel/CTA configuration for app signups."""
 
-    landing_url: Optional[str] = None
-    utm_source: Optional[str] = None
-    utm_campaign: Optional[str] = None
-    cta_variant_id: Optional[str] = None
+    landing_url: str | None = None
+    utm_source: str | None = None
+    utm_campaign: str | None = None
+    cta_variant_id: str | None = None
 
 
 class SoundbankRef(BaseModel):
@@ -101,7 +101,7 @@ class QCIssue(BaseModel):
 
     code: str  # e.g., "too_short", "leading_silence", "missing_file"
     message: str
-    value: Optional[float] = None  # Optional measured value (e.g., duration, silence seconds)
+    value: float | None = None  # Optional measured value (e.g., duration, silence seconds)
 
 
 class TrackQC(BaseModel):
@@ -109,14 +109,16 @@ class TrackQC(BaseModel):
 
     passed: bool = False
     issues: list[QCIssue] = Field(default_factory=list)
-    measured: dict[str, float] = Field(default_factory=dict)  # duration_seconds, leading_silence_seconds, etc.
+    measured: dict[str, float] = Field(
+        default_factory=dict
+    )  # duration_seconds, leading_silence_seconds, etc.
 
 
 class ReviewData(BaseModel):
     """Review/QC output data."""
 
-    qc_report_json_path: Optional[str] = None
-    qc_report_txt_path: Optional[str] = None
+    qc_report_json_path: str | None = None
+    qc_report_txt_path: str | None = None
     approved_track_indices: list[int] = Field(default_factory=list)
     rejected_track_indices: list[int] = Field(default_factory=list)
     qc_summary: dict[str, int] = Field(default_factory=dict)  # passed_count, failed_count, etc.
@@ -125,31 +127,33 @@ class ReviewData(BaseModel):
 class PlanPrompt(BaseModel):
     """A single prompt for Suno generation job (produces 2 variants)."""
 
-    job_index: Optional[int] = None  # Job index (0-based). Each job produces 2 variants.
+    job_index: int | None = None  # Job index (0-based). Each job produces 2 variants.
     style: str  # Music style/genre (required for Suno customMode)
     title: str  # Base track title (required for Suno customMode). Variants will be "Title I" and "Title II".
     prompt: str  # Musical description with mood, instrumentation, tempo
-    seed_hint: Optional[str] = None
+    seed_hint: str | None = None
     vocals_enabled: bool = False
-    lyrics_text: Optional[str] = None  # Lyrics text (used as prompt in Suno when instrumental=false)
-    
+    lyrics_text: str | None = (
+        None  # Lyrics text (used as prompt in Suno when instrumental=false)
+    )
+
     # Backwards compatibility: allow track_index for older project.json files
-    track_index: Optional[int] = None  # Deprecated: use job_index instead
-    
-    @model_validator(mode='before')
+    track_index: int | None = None  # Deprecated: use job_index instead
+
+    @model_validator(mode="before")
     @classmethod
     def handle_backwards_compatibility(cls, data):
         """Convert old track_index to job_index for backwards compatibility."""
         if isinstance(data, dict):
             # If job_index is missing but track_index exists, convert it
-            if 'job_index' not in data and 'track_index' in data:
+            if "job_index" not in data and "track_index" in data:
                 # Old behavior: each track_index was a separate job
                 # New behavior: each job_index produces 2 variants
                 # So job_index = track_index (1:1 mapping for old projects)
-                data['job_index'] = data['track_index']
+                data["job_index"] = data["track_index"]
         return data
-    
-    @model_validator(mode='after')
+
+    @model_validator(mode="after")
     def validate_job_index(self):
         """Ensure job_index is set."""
         if self.job_index is None:
@@ -169,14 +173,14 @@ class PlanData(BaseModel):
     """Planning output data."""
 
     prompts: list[PlanPrompt] = Field(default_factory=list)
-    youtube_metadata: Optional[YouTubeMetadata] = None
+    youtube_metadata: YouTubeMetadata | None = None
 
 
 class TrackError(BaseModel):
     """Error information for a failed track."""
 
     message: str
-    raw: Optional[str] = None
+    raw: str | None = None
     attempt_count: int = 0  # Number of attempts made for this track
 
 
@@ -184,21 +188,23 @@ class Track(BaseModel):
     """Generated track metadata (one per variant)."""
 
     track_index: int  # Final track index (0-based, sequential across all variants)
-    title: Optional[str] = None  # Track title (e.g., "Whispering Scrolls I" or "Whispering Scrolls II")
-    style: Optional[str] = None  # Music style/genre
+    title: str | None = (
+        None  # Track title (e.g., "Whispering Scrolls I" or "Whispering Scrolls II")
+    )
+    style: str | None = None  # Music style/genre
     prompt: str  # Musical description
     provider: str = "suno"
-    job_id: Optional[str] = None  # Suno job ID (shared across both variants from same job)
-    job_index: Optional[int] = None  # Which planned job this came from (0-based)
-    variant_index: Optional[int] = None  # Which variant (0 or 1) from the job
-    audio_url: Optional[str] = None  # Last known audio URL for resume
-    audio_path: Optional[str] = None
+    job_id: str | None = None  # Suno job ID (shared across both variants from same job)
+    job_index: int | None = None  # Which planned job this came from (0-based)
+    variant_index: int | None = None  # Which variant (0 or 1) from the job
+    audio_url: str | None = None  # Last known audio URL for resume
+    audio_path: str | None = None
     duration_seconds: float = 0.0
     status: TrackStatusType = "ok"
-    error: Optional[TrackError] = None
-    qc: Optional[TrackQC] = None
-    
-    @model_validator(mode='after')
+    error: TrackError | None = None
+    qc: TrackQC | None = None
+
+    @model_validator(mode="after")
     def fill_missing_fields_from_plan(self):
         """Fill missing title/style/job_index/variant_index for backwards compatibility."""
         # For old projects without these fields, infer from track_index
@@ -214,23 +220,23 @@ class Track(BaseModel):
 class RenderData(BaseModel):
     """Render output data."""
 
-    background_path: Optional[str] = None
-    thumbnail_path: Optional[str] = None
+    background_path: str | None = None
+    thumbnail_path: str | None = None
     selected_track_indices: list[int] = Field(default_factory=list)
-    output_mp4_path: Optional[str] = None
-    chapters_path: Optional[str] = None
-    description_path: Optional[str] = None
+    output_mp4_path: str | None = None
+    chapters_path: str | None = None
+    description_path: str | None = None
 
 
 class YouTubeData(BaseModel):
     """YouTube upload result data."""
 
-    video_id: Optional[str] = None
-    uploaded_at: Optional[str] = None
-    privacy: Optional[PrivacyType] = None
-    title: Optional[str] = None
+    video_id: str | None = None
+    uploaded_at: str | None = None
+    privacy: PrivacyType | None = None
+    title: str | None = None
     thumbnail_uploaded: bool = False
-    thumbnail_path: Optional[str] = None
+    thumbnail_path: str | None = None
 
 
 class Project(BaseModel):
@@ -239,8 +245,8 @@ class Project(BaseModel):
     project_id: str
     created_at: str  # ISO timestamp
     theme: str
-    channel_id: Optional[str] = None
-    intent: Optional[str] = None
+    channel_id: str | None = None
+    intent: str | None = None
     target_minutes: int = 60
     track_count: int = 25
     vocals: VocalsConfig = Field(default_factory=VocalsConfig)
@@ -249,12 +255,14 @@ class Project(BaseModel):
     upload: UploadConfig = Field(default_factory=UploadConfig)
     status: ProjectStatus = Field(default_factory=ProjectStatus)
     funnel: FunnelConfig = Field(default_factory=FunnelConfig)
-    plan: Optional[PlanData] = None
+    plan: PlanData | None = None
     tracks: list[Track] = Field(default_factory=list)
-    tinnitus_recipe: Optional[TinnitusMixRecipe] = None  # For tinnitus channel: mix recipe using soundbank stems
-    review: Optional[ReviewData] = None
-    render: Optional[RenderData] = None
-    youtube: Optional[YouTubeData] = None
+    tinnitus_recipe: TinnitusMixRecipe | None = (
+        None  # For tinnitus channel: mix recipe using soundbank stems
+    )
+    review: ReviewData | None = None
+    render: RenderData | None = None
+    youtube: YouTubeData | None = None
 
 
 # Project directory structure
@@ -329,12 +337,10 @@ def load_project(project_id: str) -> Project:
     project_json_path = project_dir / "project.json"
 
     if not project_json_path.exists():
-        raise FileNotFoundError(
-            f"Project not found: {project_id}. Expected {project_json_path}"
-        )
+        raise FileNotFoundError(f"Project not found: {project_id}. Expected {project_json_path}")
 
     try:
-        with open(project_json_path, "r", encoding="utf-8") as f:
+        with open(project_json_path, encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON in project.json: {e}") from e
@@ -377,7 +383,7 @@ def save_project(project: Project) -> None:
         f.write("\n")
 
 
-def _classify_error(error: Exception) -> tuple[Optional[str], Optional[str], Optional[str]]:
+def _classify_error(error: Exception) -> tuple[str | None, str | None, str | None]:
     """
     Classify error to extract kind, provider, and raw details.
 
@@ -398,7 +404,12 @@ def _classify_error(error: Exception) -> tuple[Optional[str], Optional[str], Opt
     error_msg = str(error)
 
     # Detect provider from error message or exception type
-    if "gemini" in error_str or "google.genai" in error_str or "genai" in error_str or "google.api_core" in error_str:
+    if (
+        "gemini" in error_str
+        or "google.genai" in error_str
+        or "genai" in error_str
+        or "google.api_core" in error_str
+    ):
         provider = "gemini"
     elif "suno" in error_str or "sunoapi" in error_str or "api.sunoapi.org" in error_str:
         provider = "suno"
@@ -408,9 +419,20 @@ def _classify_error(error: Exception) -> tuple[Optional[str], Optional[str], Opt
         provider = None  # FFmpeg is not a provider, but we'll mark kind as ffmpeg
 
     # Classify error kind
-    if "401" in error_msg or "403" in error_msg or "unauthorized" in error_str or "forbidden" in error_str or "authentication" in error_str:
+    if (
+        "401" in error_msg
+        or "403" in error_msg
+        or "unauthorized" in error_str
+        or "forbidden" in error_str
+        or "authentication" in error_str
+    ):
         kind = "auth"
-    elif "429" in error_msg or "rate limit" in error_str or "quota exceeded" in error_str or "too many requests" in error_str:
+    elif (
+        "429" in error_msg
+        or "rate limit" in error_str
+        or "quota exceeded" in error_str
+        or "too many requests" in error_str
+    ):
         kind = "rate_limit"
     elif "timeout" in error_str or "timed out" in error_str:
         kind = "timeout"
@@ -425,7 +447,7 @@ def _classify_error(error: Exception) -> tuple[Optional[str], Optional[str], Opt
 
     # Extract raw error details
     raw_parts = []
-    
+
     # Try to get HTTP response content (httpx)
     if hasattr(error, "response") and hasattr(error.response, "text"):
         status = getattr(error.response, "status_code", "?")
@@ -437,15 +459,15 @@ def _classify_error(error: Exception) -> tuple[Optional[str], Optional[str], Opt
             raw_parts.append(f"HTTP {error.resp.status}: {str(content)[:500]}")
         else:
             raw_parts.append(f"HTTP {error.resp.status}")
-    
+
     # Try to get status code directly
     if hasattr(error, "status_code") and not any("HTTP" in p for p in raw_parts):
         raw_parts.append(f"Status: {error.status_code}")
-    
+
     # Include full error message (truncated)
     if error_msg:
         raw_parts.append(error_msg[:1000])
-    
+
     raw = " | ".join(raw_parts) if raw_parts else None
     if raw and len(raw) > 2000:
         raw = raw[:2000] + "... (truncated)"
@@ -453,9 +475,7 @@ def _classify_error(error: Exception) -> tuple[Optional[str], Optional[str], Opt
     return kind, provider, raw
 
 
-def update_status(
-    project: Project, step: str, error: Optional[Exception] = None
-) -> None:
+def update_status(project: Project, step: str, error: Exception | None = None) -> None:
     """
     Update project status and persist last_error if present.
 
@@ -475,7 +495,7 @@ def update_status(
     else:
         # Classify error
         kind, provider, raw = _classify_error(error)
-        
+
         # Failure: persist error details
         project.status.last_error = LastError(
             step=step,
@@ -486,4 +506,3 @@ def update_status(
             provider=provider,
             raw=raw,
         )
-

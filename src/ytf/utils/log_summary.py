@@ -10,7 +10,6 @@ import re
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from ytf.project import PROJECTS_DIR
 
@@ -28,18 +27,18 @@ def parse_text_log(log_path: Path) -> list[dict]:
     entries = []
     if not log_path.exists():
         return entries
-    
+
     # Pattern: [timestamp] [STEP] [LEVEL] message [context]
     pattern = re.compile(
-        r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[(\w+)\] \[(\w+)\] (.+?)(?: \[(.+)\])?$'
+        r"\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[(\w+)\] \[(\w+)\] (.+?)(?: \[(.+)\])?$"
     )
-    
-    with open(log_path, "r", encoding="utf-8") as f:
+
+    with open(log_path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            
+
             match = pattern.match(line)
             if match:
                 timestamp_str, step, level, message, context_str = match.groups()
@@ -49,7 +48,7 @@ def parse_text_log(log_path: Path) -> list[dict]:
                     "level": level,
                     "message": message,
                 }
-                
+
                 # Parse context if present
                 if context_str:
                     context = {}
@@ -65,9 +64,9 @@ def parse_text_log(log_path: Path) -> list[dict]:
                             except ValueError:
                                 context[key] = value
                     entry["context"] = context
-                
+
                 entries.append(entry)
-    
+
     return entries
 
 
@@ -84,8 +83,8 @@ def parse_json_log(log_path: Path) -> list[dict]:
     entries = []
     if not log_path.exists():
         return entries
-    
-    with open(log_path, "r", encoding="utf-8") as f:
+
+    with open(log_path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -95,7 +94,7 @@ def parse_json_log(log_path: Path) -> list[dict]:
                 entries.append(entry)
             except json.JSONDecodeError:
                 continue
-    
+
     return entries
 
 
@@ -112,11 +111,11 @@ def generate_summary(project_id: str, step: str) -> dict:
     """
     project_dir = PROJECTS_DIR / project_id
     logs_dir = project_dir / "logs"
-    
+
     # Try JSON log first, fall back to text log
     json_log_path = logs_dir / f"{step}.log.json"
     text_log_path = logs_dir / f"{step}.log"
-    
+
     entries = []
     if json_log_path.exists():
         entries = parse_json_log(json_log_path)
@@ -129,7 +128,7 @@ def generate_summary(project_id: str, step: str) -> dict:
             "status": "no_logs",
             "error": "Log file not found",
         }
-    
+
     if not entries:
         return {
             "project_id": project_id,
@@ -137,7 +136,7 @@ def generate_summary(project_id: str, step: str) -> dict:
             "status": "empty",
             "error": "Log file is empty",
         }
-    
+
     # Analyze entries
     error_count = defaultdict(int)
     error_by_type = defaultdict(int)
@@ -147,16 +146,16 @@ def generate_summary(project_id: str, step: str) -> dict:
     track_failures = []
     durations = []
     provider_durations = defaultdict(list)
-    
+
     for entry in entries:
         level = entry.get("level", "").upper()
         message = entry.get("message", "")
         context = entry.get("context", {})
-        
+
         # Count errors
         if level == "ERROR":
             error_count["total"] += 1
-            
+
             # Classify error type from message/context
             if "auth" in message.lower() or "401" in message or "403" in message:
                 error_by_type["auth"] += 1
@@ -170,27 +169,29 @@ def generate_summary(project_id: str, step: str) -> dict:
                 error_by_type["ffmpeg"] += 1
             else:
                 error_by_type["unknown"] += 1
-            
+
             # Provider-specific errors
             provider = context.get("provider") or entry.get("provider")
             if provider:
                 error_by_provider[provider] += 1
-            
+
             # Track failures (for generate step)
             track_index = context.get("track_index") or entry.get("track_index")
             if track_index is not None:
-                track_failures.append({
-                    "track_index": track_index,
-                    "message": message,
-                    "provider": provider,
-                })
-        
+                track_failures.append(
+                    {
+                        "track_index": track_index,
+                        "message": message,
+                        "provider": provider,
+                    }
+                )
+
         # Count retries
         if "retry" in message.lower() or context.get("retry_count"):
             retry_count += 1
             # Check if retry was successful (next entry is success)
             # This is a simple heuristic - could be improved
-        
+
         # Collect durations
         duration_ms = context.get("duration_ms") or entry.get("duration_ms")
         if duration_ms:
@@ -198,7 +199,7 @@ def generate_summary(project_id: str, step: str) -> dict:
             provider = context.get("provider") or entry.get("provider")
             if provider:
                 provider_durations[provider].append(duration_ms)
-    
+
     # Calculate statistics
     summary = {
         "project_id": project_id,
@@ -230,11 +231,11 @@ def generate_summary(project_id: str, step: str) -> dict:
             },
         },
     }
-    
+
     # Add track failures if present
     if track_failures:
         summary["track_failures"] = track_failures
-    
+
     return summary
 
 
@@ -253,10 +254,9 @@ def save_summary(project_id: str, step: str, summary: dict) -> Path:
     project_dir = PROJECTS_DIR / project_id
     logs_dir = project_dir / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
-    
+
     summary_path = logs_dir / f"{step}_summary.json"
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
-    
-    return summary_path
 
+    return summary_path

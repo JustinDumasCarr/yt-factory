@@ -1,0 +1,9 @@
+{
+  "project": {
+    "name": "yt-factory",
+    "description": "Local-first automation pipeline for YouTube music compilations"
+  },
+  "preferences": {
+    "default_branch": "main"
+  }
+}

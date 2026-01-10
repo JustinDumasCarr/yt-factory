@@ -5,21 +5,21 @@ Provides `run_project` to run steps up to a target, and `run_batch` for batch pr
 """
 
 from datetime import datetime
-from pathlib import Path
-from typing import Optional
 
 from ytf.logger import StepLogger
 from ytf.project import PROJECTS_DIR, load_project
 from ytf.steps import generate, plan, render, review, upload
 from ytf.utils.retry import retry_step
 
-
 # Step execution order
 STEP_ORDER = ["plan", "generate", "review", "render", "upload"]
 
 
 def run_project(
-    project_id: str, to_step: str = "upload", from_step: Optional[str] = None, use_retries: bool = False
+    project_id: str,
+    to_step: str = "upload",
+    from_step: str | None = None,
+    use_retries: bool = False,
 ) -> None:
     """
     Run pipeline steps sequentially for a project.
@@ -124,7 +124,7 @@ def run_batch(
     count: int,
     mode: str,
     base_theme: str,
-    batch_id: Optional[str] = None,
+    batch_id: str | None = None,
 ) -> dict:
     """
     Create and run multiple projects in batch.
@@ -216,7 +216,7 @@ def run_batch(
         except Exception as e:
             # Capture failure
             project_outcome["completed_at"] = datetime.now().isoformat()
-            
+
             # Try to load project state for accurate failure info
             if project_outcome["project_id"]:
                 try:
@@ -261,4 +261,3 @@ def run_batch(
         f.write("\n")
 
     return summary
-

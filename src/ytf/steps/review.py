@@ -6,7 +6,6 @@ Persists QC results to project.json.
 """
 
 import json
-from pathlib import Path
 
 from ytf.channel import get_channel
 from ytf.logger import StepLogger
@@ -78,7 +77,7 @@ def run(project_id: str) -> None:
 
             if approved_path.exists():
                 log.info(f"Reading approved.txt: {approved_path}")
-                with open(approved_path, "r", encoding="utf-8") as f:
+                with open(approved_path, encoding="utf-8") as f:
                     for line in f:
                         line = line.strip()
                         if line and not line.startswith("#"):
@@ -90,7 +89,7 @@ def run(project_id: str) -> None:
 
             if rejected_path.exists():
                 log.info(f"Reading rejected.txt: {rejected_path}")
-                with open(rejected_path, "r", encoding="utf-8") as f:
+                with open(rejected_path, encoding="utf-8") as f:
                     for line in f:
                         line = line.strip()
                         if line and not line.startswith("#"):
@@ -197,7 +196,9 @@ def run(project_id: str) -> None:
                                         )
                             except Exception as e:
                                 # Leading silence detection failure is not critical
-                                log.warning(f"Track {track_index}: Leading silence detection failed: {e}")
+                                log.warning(
+                                    f"Track {track_index}: Leading silence detection failed: {e}"
+                                )
 
                     if qc.passed:
                         passed_count += 1
@@ -342,4 +343,3 @@ def run(project_id: str) -> None:
             save_project(project)
             log.error(f"Review step failed: {e}")
             raise
-

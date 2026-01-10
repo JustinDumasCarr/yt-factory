@@ -81,14 +81,19 @@ def run(project_id: str) -> None:
 
             style_guidance_text = ""
             if channel.prompt_constraints.style_guidance:
-                style_guidance_text = f"\nStyle guidance: {channel.prompt_constraints.style_guidance}"
+                style_guidance_text = (
+                    f"\nStyle guidance: {channel.prompt_constraints.style_guidance}"
+                )
 
             energy_text = f"\nEnergy level: {channel.prompt_constraints.energy_level}"
 
             # Generate job prompts (each job produces 2 variants, so jobs = ceil(track_count/2))
             import math
+
             job_count = math.ceil(project.track_count / 2)
-            log.info(f"Generating {job_count} job prompts (will produce {project.track_count} tracks via {job_count} Suno jobs)...")
+            log.info(
+                f"Generating {job_count} job prompts (will produce {project.track_count} tracks via {job_count} Suno jobs)..."
+            )
             track_data_list = provider.generate_track_data(
                 theme=project.theme,
                 track_count=job_count,  # Generate prompts for jobs, not final tracks
@@ -108,7 +113,9 @@ def run(project_id: str) -> None:
                     vocals_enabled=project.vocals.enabled,
                 )
                 prompts.append(prompt)
-                log.info(f"Job {i}: {track_data['title']} ({track_data['style']}) - will produce 2 variants")
+                log.info(
+                    f"Job {i}: {track_data['title']} ({track_data['style']}) - will produce 2 variants"
+                )
 
             # Generate lyrics if vocals and lyrics are enabled
             if project.vocals.enabled and project.lyrics.enabled:
@@ -127,9 +134,7 @@ def run(project_id: str) -> None:
                             f"({len(lyrics)} characters)"
                         )
                     except Exception as e:
-                        log.error(
-                            f"Failed to generate lyrics for job {prompt.job_index}: {e}"
-                        )
+                        log.error(f"Failed to generate lyrics for job {prompt.job_index}: {e}")
                         # Continue with other tracks even if one fails
                         raise
 
@@ -137,10 +142,10 @@ def run(project_id: str) -> None:
             log.info("Generating YouTube metadata...")
             max_retries = 2
             youtube_metadata = None
-            
+
             # Build channel constraints text for metadata generation
             channel_constraints_text = f"{banned_terms_text}{style_guidance_text}{energy_text}"
-            
+
             for attempt in range(max_retries + 1):
                 try:
                     metadata_dict = provider.generate_youtube_metadata(
@@ -153,24 +158,24 @@ def run(project_id: str) -> None:
                         description=metadata_dict["description"],
                         tags=metadata_dict["tags"],
                     )
-                    
+
                     # Validate metadata against channel tag rules
                     log.info(f"Validating metadata (attempt {attempt + 1}/{max_retries + 1})...")
-                    
+
                     validation_failed = False
                     validation_errors = []
-                    
+
                     # Check for banned terms in title, description, and tags
                     all_text = f"{candidate_metadata.title} {candidate_metadata.description} {' '.join(candidate_metadata.tags)}".lower()
                     banned_found = []
                     for banned_term in channel.tag_rules.banned_terms:
                         if banned_term.lower() in all_text:
                             banned_found.append(banned_term)
-                    
+
                     if banned_found:
                         validation_failed = True
                         validation_errors.append(f"Banned terms: {', '.join(banned_found)}")
-                    
+
                     # Enforce tag whitelist if defined (strict: all tags must be in whitelist)
                     if channel.tag_rules.whitelist:
                         invalid_tags = []
@@ -178,17 +183,19 @@ def run(project_id: str) -> None:
                             tag_lower = tag.lower()
                             # Strict check: tag must exactly match or be contained in a whitelist entry
                             if not any(
-                                allowed.lower() == tag_lower or 
-                                tag_lower in allowed.lower() or 
-                                allowed.lower() in tag_lower
+                                allowed.lower() == tag_lower
+                                or tag_lower in allowed.lower()
+                                or allowed.lower() in tag_lower
                                 for allowed in channel.tag_rules.whitelist
                             ):
                                 invalid_tags.append(tag)
-                        
+
                         if invalid_tags:
                             validation_failed = True
-                            validation_errors.append(f"Tags not in whitelist: {', '.join(invalid_tags)}")
-                    
+                            validation_errors.append(
+                                f"Tags not in whitelist: {', '.join(invalid_tags)}"
+                            )
+
                     # If validation passed, use this metadata
                     if not validation_failed:
                         youtube_metadata = candidate_metadata
@@ -198,9 +205,9 @@ def run(project_id: str) -> None:
                             for tag in candidate_metadata.tags:
                                 tag_lower = tag.lower()
                                 if any(
-                                    allowed.lower() == tag_lower or 
-                                    tag_lower in allowed.lower() or 
-                                    allowed.lower() in tag_lower
+                                    allowed.lower() == tag_lower
+                                    or tag_lower in allowed.lower()
+                                    or allowed.lower() in tag_lower
                                     for allowed in channel.tag_rules.whitelist
                                 ):
                                     filtered_tags.append(tag)
@@ -224,12 +231,14 @@ def run(project_id: str) -> None:
                             )
                             log.error(error_msg)
                             raise ValueError(error_msg)
-                            
+
                 except Exception as e:
                     if attempt >= max_retries:
                         raise
-                    log.warning(f"Metadata generation failed (attempt {attempt + 1}): {e}. Retrying...")
-            
+                    log.warning(
+                        f"Metadata generation failed (attempt {attempt + 1}): {e}. Retrying..."
+                    )
+
             if youtube_metadata is None:
                 raise RuntimeError("Failed to generate valid YouTube metadata after retries")
 
@@ -253,11 +262,12 @@ def run(project_id: str) -> None:
             log.info("Plan step completed successfully")
             log.info(f"Generated {len(prompts)} track prompts")
             if project.vocals.enabled and project.lyrics.enabled:
-                log.info(f"Generated lyrics for {len([p for p in prompts if p.lyrics_text])} tracks")
+                log.info(
+                    f"Generated lyrics for {len([p for p in prompts if p.lyrics_text])} tracks"
+                )
 
         except Exception as e:
             update_status(project, "plan", error=e)
             save_project(project)
             log.error(f"Plan step failed: {e}")
             raise
-

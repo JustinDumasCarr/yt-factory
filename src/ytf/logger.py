@@ -13,8 +13,6 @@ import os
 import sys
 from contextlib import contextmanager
 from datetime import datetime
-from pathlib import Path
-from typing import Optional
 
 from ytf.project import PROJECTS_DIR
 from ytf.utils.log_summary import generate_summary, save_summary
@@ -30,7 +28,7 @@ class StepLogger:
         with StepLogger(project_id, "plan") as log:
             log.info("Starting plan step")
             log.error("Something went wrong")
-        
+
         # With context for structured metadata:
         with log.with_context(track_index=0, provider="suno") as ctx_log:
             ctx_log.info("Generating track")
@@ -51,9 +49,9 @@ class StepLogger:
         self.json_log_file = None
         self.json_log_enabled = os.getenv("YTF_JSON_LOGS", "").lower() in ("true", "1", "yes")
         self.context: dict = {}  # Current context metadata
-        self.step_start_time: Optional[datetime] = None
+        self.step_start_time: datetime | None = None
 
-    def _format_message(self, level: str, message: str, context: Optional[dict] = None) -> str:
+    def _format_message(self, level: str, message: str, context: dict | None = None) -> str:
         """
         Format log message with timestamp and metadata.
 
@@ -67,7 +65,7 @@ class StepLogger:
         """
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         base = f"[{timestamp}] [{self.step.upper()}] [{level}] {message}"
-        
+
         # Append context if present
         if context:
             ctx_parts = []
@@ -76,10 +74,10 @@ class StepLogger:
                     ctx_parts.append(f"{key}={value}")
             if ctx_parts:
                 base += f" [{', '.join(ctx_parts)}]"
-        
+
         return base
-    
-    def _format_json_log(self, level: str, message: str, context: Optional[dict] = None) -> dict:
+
+    def _format_json_log(self, level: str, message: str, context: dict | None = None) -> dict:
         """
         Format log message as JSON structure.
 
@@ -98,14 +96,14 @@ class StepLogger:
             "message": message,
             "project_id": self.project_id,
         }
-        
+
         # Merge context into log entry
         if context:
             log_entry.update(context)
-        
+
         return log_entry
 
-    def _write(self, level: str, message: str, context: Optional[dict] = None) -> None:
+    def _write(self, level: str, message: str, context: dict | None = None) -> None:
         """
         Write message to both console and log file (and JSON log if enabled).
 
@@ -118,7 +116,7 @@ class StepLogger:
         merged_context = {**self.context}
         if context:
             merged_context.update(context)
-        
+
         formatted = self._format_message(level, message, merged_context if merged_context else None)
 
         # Write to console (always newline-terminated + flushed to avoid concatenation)
@@ -137,10 +135,12 @@ class StepLogger:
             else:
                 self.log_file.write(formatted)
             self.log_file.flush()
-        
+
         # Write to JSON log file if enabled
         if self.json_log_enabled and self.json_log_file:
-            json_entry = self._format_json_log(level, message, merged_context if merged_context else None)
+            json_entry = self._format_json_log(
+                level, message, merged_context if merged_context else None
+            )
             self.json_log_file.write(json.dumps(json_entry) + "\n")
             self.json_log_file.flush()
 
@@ -155,19 +155,19 @@ class StepLogger:
     def warning(self, message: str, **context) -> None:
         """Log a warning message with optional context."""
         self._write("WARNING", message, context if context else None)
-    
+
     @contextmanager
     def with_context(self, **kwargs):
         """
         Context manager for adding structured metadata to log entries.
-        
+
         Usage:
             with log.with_context(track_index=0, provider="suno") as ctx_log:
                 ctx_log.info("Generating track")
-        
+
         Args:
             **kwargs: Context metadata (track_index, provider, retry_count, duration_ms, etc.)
-        
+
         Yields:
             StepLogger instance with context applied
         """
@@ -188,12 +188,12 @@ class StepLogger:
 
         # Open text log file in append mode
         self.log_file = open(self.log_file_path, "a", encoding="utf-8")
-        
+
         # Open JSON log file if enabled
         if self.json_log_enabled:
             json_log_path = self.log_file_path.parent / f"{self.step}.log.json"
             self.json_log_file = open(json_log_path, "a", encoding="utf-8")
-        
+
         # Record step start time
         self.step_start_time = datetime.now()
 
@@ -209,7 +209,7 @@ class StepLogger:
         if self.step_start_time:
             duration = datetime.now() - self.step_start_time
             step_duration_ms = int(duration.total_seconds() * 1000)
-        
+
         if exc_type is not None:
             # Log exception details
             import traceback
@@ -229,11 +229,11 @@ class StepLogger:
         if self.log_file:
             self.log_file.close()
             self.log_file = None
-        
+
         if self.json_log_file:
             self.json_log_file.close()
             self.json_log_file = None
-        
+
         # Generate summary after step completes
         try:
             summary = generate_summary(self.project_id, self.step)
@@ -244,4 +244,3 @@ class StepLogger:
 
         # Don't suppress exceptions
         return False
-

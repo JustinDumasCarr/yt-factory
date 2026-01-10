@@ -8,11 +8,11 @@ All API calls follow the official Suno API documentation.
 import json
 import os
 import time
-from typing import Any, Optional
+from typing import Any
 
 import httpx
-
 from dotenv import load_dotenv
+
 from ytf.utils.retry import retry_call
 
 # Load environment variables from .env file
@@ -34,8 +34,7 @@ class SunoProvider:
         api_key = os.getenv("SUNO_API_KEY")
         if not api_key:
             raise ValueError(
-                "SUNO_API_KEY environment variable is not set. "
-                "Please set it in your .env file."
+                "SUNO_API_KEY environment variable is not set. " "Please set it in your .env file."
             )
         self.api_key = api_key
         self.model = os.getenv("SUNO_MODEL", "V4_5ALL")
@@ -52,9 +51,9 @@ class SunoProvider:
         self,
         style: str,
         title: str,
-        prompt: Optional[str] = None,
+        prompt: str | None = None,
         instrumental: bool = False,
-        negative_tags: Optional[str] = None,
+        negative_tags: str | None = None,
     ) -> str:
         """
         Submit a music generation job to Suno.
@@ -90,7 +89,7 @@ class SunoProvider:
             payload["prompt"] = prompt
         # If instrumental=true, prompt is not used (per Suno docs)
         # But we can use negativeTags to guide generation
-        
+
         # Add negativeTags if provided (helps exclude unwanted elements)
         if negative_tags:
             payload["negativeTags"] = negative_tags
@@ -115,9 +114,7 @@ class SunoProvider:
             task_id = data.get("data", {}).get("taskId")
             if not task_id:
                 raw_error = json.dumps(data, indent=2)
-                raise RuntimeError(
-                    f"Suno API response missing taskId | Raw: {raw_error}"
-                )
+                raise RuntimeError(f"Suno API response missing taskId | Raw: {raw_error}")
 
             return task_id
 
@@ -151,9 +148,7 @@ class SunoProvider:
         try:
             # Wrap API call with retry logic
             response = retry_call(
-                lambda: self.client.get(
-                    "/api/v1/generate/record-info", params={"taskId": task_id}
-                ),
+                lambda: self.client.get("/api/v1/generate/record-info", params={"taskId": task_id}),
                 max_retries=3,
                 initial_delay=1.0,
             )
@@ -172,12 +167,16 @@ class SunoProvider:
             # Check task status from API response
             data_obj = data.get("data", {})
             task_status = data_obj.get("status", "").upper()
-            
-            # Status values: PENDING, TEXT_SUCCESS, FIRST_SUCCESS, SUCCESS, 
+
+            # Status values: PENDING, TEXT_SUCCESS, FIRST_SUCCESS, SUCCESS,
             # CREATE_TASK_FAILED, GENERATE_AUDIO_FAILED, CALLBACK_EXCEPTION, SENSITIVE_WORD_ERROR
-            
+
             # Check for failure statuses
-            if task_status in ("CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "SENSITIVE_WORD_ERROR"):
+            if task_status in (
+                "CREATE_TASK_FAILED",
+                "GENERATE_AUDIO_FAILED",
+                "SENSITIVE_WORD_ERROR",
+            ):
                 error_msg = data_obj.get("errorMessage", f"Task failed with status: {task_status}")
                 return {
                     "status": "failed",
@@ -185,7 +184,7 @@ class SunoProvider:
                     "raw": json.dumps(data),
                     "error": error_msg,
                 }
-            
+
             # Check if generation is complete (SUCCESS means all tracks ready)
             if task_status == "SUCCESS":
                 response_data = data_obj.get("response")
@@ -202,7 +201,7 @@ class SunoProvider:
                                 "sunoData": suno_data,
                                 "raw": json.dumps(data),
                             }
-            
+
             # FIRST_SUCCESS means first track is ready (we can use it)
             if task_status == "FIRST_SUCCESS":
                 response_data = data_obj.get("response")
@@ -218,7 +217,7 @@ class SunoProvider:
                                 "sunoData": suno_data,
                                 "raw": json.dumps(data),
                             }
-            
+
             # TEXT_SUCCESS means lyrics/text generation done, but audio not ready yet
             # PENDING means still processing
             # Still processing
@@ -334,4 +333,3 @@ class SunoProvider:
         """Context manager exit - close client."""
         self.close()
         return False
-

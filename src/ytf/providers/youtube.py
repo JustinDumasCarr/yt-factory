@@ -56,9 +56,7 @@ class YouTubeProvider:
 
         self.credentials_path = Path(credentials_path)
         if not self.credentials_path.exists():
-            raise FileNotFoundError(
-                f"YouTube OAuth credentials file not found: {credentials_path}"
-            )
+            raise FileNotFoundError(f"YouTube OAuth credentials file not found: {credentials_path}")
 
         self.project_id = project_id
         self.token_path = PROJECTS_DIR / project_id / ".youtube_token.json"
@@ -104,7 +102,7 @@ class YouTubeProvider:
         # Try to load cached token
         if self.token_path.exists():
             try:
-                with open(self.token_path, "r", encoding="utf-8") as f:
+                with open(self.token_path, encoding="utf-8") as f:
                     token_data = json.load(f)
                 credentials = Credentials.from_authorized_user_info(token_data, SCOPES)
 
@@ -115,15 +113,13 @@ class YouTubeProvider:
                 # Save refreshed token
                 self._save_credentials(credentials)
                 return credentials
-            except Exception as e:
+            except Exception:
                 # If loading fails, we'll create new credentials
                 pass
 
         # No valid cached token, initiate OAuth flow
         try:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                str(self.credentials_path), SCOPES
-            )
+            flow = InstalledAppFlow.from_client_secrets_file(str(self.credentials_path), SCOPES)
             credentials = flow.run_local_server(port=0)
             self._save_credentials(credentials)
             return credentials
@@ -222,9 +218,7 @@ class YouTubeProvider:
         response = self._resumable_upload(insert_request)
 
         if "id" not in response:
-            raise RuntimeError(
-                f"Upload failed with unexpected response: {response}"
-            )
+            raise RuntimeError(f"Upload failed with unexpected response: {response}")
 
         return response
 
@@ -252,9 +246,7 @@ class YouTubeProvider:
                     if "id" in response:
                         return response
                     else:
-                        raise RuntimeError(
-                            f"Upload failed with unexpected response: {response}"
-                        )
+                        raise RuntimeError(f"Upload failed with unexpected response: {response}")
             except HttpError as e:
                 if e.resp.status in RETRIABLE_STATUS_CODES:
                     # Include raw error content in error message
@@ -279,7 +271,7 @@ class YouTubeProvider:
                     )
 
                 retry += 1
-                sleep_seconds = 2 ** retry  # Exponential backoff
+                sleep_seconds = 2**retry  # Exponential backoff
                 time.sleep(sleep_seconds)
 
         raise RuntimeError("Upload failed: no response received")
@@ -316,4 +308,3 @@ class YouTubeProvider:
             if hasattr(e, "response") and hasattr(e.response, "text"):
                 raw_error = f"Response: {e.response.text[:500]}"
             raise RuntimeError(f"Failed to upload thumbnail: {e} | Raw: {raw_error}") from e
-

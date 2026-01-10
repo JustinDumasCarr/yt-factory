@@ -7,8 +7,6 @@ Per-variant failures do not stop the step - it continues with remaining variants
 """
 
 import json
-import math
-from pathlib import Path
 
 from ytf.logger import StepLogger
 from ytf.project import (
@@ -45,9 +43,7 @@ def run(project_id: str) -> None:
 
             # Validate plan exists
             if not project.plan or not project.plan.prompts:
-                raise ValueError(
-                    "Project plan not found. Run 'ytf plan <id>' first."
-                )
+                raise ValueError("Project plan not found. Run 'ytf plan <id>' first.")
 
             prompts = project.plan.prompts
             log.info(f"Found {len(prompts)} job prompts to generate")
@@ -69,7 +65,7 @@ def run(project_id: str) -> None:
             existing_tracks_by_track_index = {}  # track_index -> Track
             for t in project.tracks:
                 existing_tracks_by_track_index[t.track_index] = t
-                if hasattr(t, 'job_index') and hasattr(t, 'variant_index'):
+                if hasattr(t, "job_index") and hasattr(t, "variant_index"):
                     if t.job_index not in existing_tracks_by_job:
                         existing_tracks_by_job[t.job_index] = {}
                     existing_tracks_by_job[t.job_index][t.variant_index] = t
@@ -84,7 +80,7 @@ def run(project_id: str) -> None:
 
             for prompt in prompts:
                 job_index = prompt.job_index
-                
+
                 # Determine track indices for this job's variants
                 variant_0_track_index = next_track_index
                 variant_1_track_index = next_track_index + 1
@@ -93,29 +89,27 @@ def run(project_id: str) -> None:
                 # Check if both variants already exist
                 existing_variants = existing_tracks_by_job.get(job_index, {})
                 variant_0_exists = (
-                    existing_variants.get(0) and 
-                    existing_variants[0].status == "ok" and 
-                    existing_variants[0].audio_path and
-                    (project_dir / existing_variants[0].audio_path).exists()
+                    existing_variants.get(0)
+                    and existing_variants[0].status == "ok"
+                    and existing_variants[0].audio_path
+                    and (project_dir / existing_variants[0].audio_path).exists()
                 )
                 variant_1_exists = (
-                    existing_variants.get(1) and 
-                    existing_variants[1].status == "ok" and 
-                    existing_variants[1].audio_path and
-                    (project_dir / existing_variants[1].audio_path).exists()
+                    existing_variants.get(1)
+                    and existing_variants[1].status == "ok"
+                    and existing_variants[1].audio_path
+                    and (project_dir / existing_variants[1].audio_path).exists()
                 )
 
                 if variant_0_exists and variant_1_exists:
-                    log.info(
-                        f"Job {job_index} already complete (both variants exist), skipping"
-                    )
+                    log.info(f"Job {job_index} already complete (both variants exist), skipping")
                     successful += 2
                     continue
 
                 # Get or submit job
                 task_id = None
                 job_tracks = existing_tracks_by_job.get(job_index, {})
-                
+
                 # Check if we have a job_id from any existing variant
                 for variant_track in job_tracks.values():
                     if variant_track and variant_track.job_id:
@@ -125,7 +119,9 @@ def run(project_id: str) -> None:
 
                 if not task_id:
                     # Submit generation job
-                    log.info(f"Submitting generation job {job_index}: {prompt.title} ({prompt.style})")
+                    log.info(
+                        f"Submitting generation job {job_index}: {prompt.title} ({prompt.style})"
+                    )
 
                     # Prepare prompt text (lyrics if vocals enabled, otherwise None)
                     prompt_text = None
@@ -156,9 +152,11 @@ def run(project_id: str) -> None:
 
                     # Mark both variants as failed
                     for variant_idx in [0, 1]:
-                        track_index = variant_0_track_index if variant_idx == 0 else variant_1_track_index
+                        track_index = (
+                            variant_0_track_index if variant_idx == 0 else variant_1_track_index
+                        )
                         variant_title = f"{prompt.title} {'I' if variant_idx == 0 else 'II'}"
-                        
+
                         existing = existing_tracks_by_track_index.get(track_index)
                         attempt_count = 0
                         if existing and existing.error:
@@ -186,7 +184,11 @@ def run(project_id: str) -> None:
                         # Update or add
                         if existing:
                             idx = next(
-                                (i for i, t in enumerate(project.tracks) if t.track_index == track_index),
+                                (
+                                    i
+                                    for i, t in enumerate(project.tracks)
+                                    if t.track_index == track_index
+                                ),
                                 None,
                             )
                             if idx is not None:
@@ -206,9 +208,11 @@ def run(project_id: str) -> None:
 
                     # Mark both variants as failed
                     for variant_idx in [0, 1]:
-                        track_index = variant_0_track_index if variant_idx == 0 else variant_1_track_index
+                        track_index = (
+                            variant_0_track_index if variant_idx == 0 else variant_1_track_index
+                        )
                         variant_title = f"{prompt.title} {'I' if variant_idx == 0 else 'II'}"
-                        
+
                         existing = existing_tracks_by_track_index.get(track_index)
                         attempt_count = 0
                         if existing and existing.error:
@@ -235,7 +239,11 @@ def run(project_id: str) -> None:
 
                         if existing:
                             idx = next(
-                                (i for i, t in enumerate(project.tracks) if t.track_index == track_index),
+                                (
+                                    i
+                                    for i, t in enumerate(project.tracks)
+                                    if t.track_index == track_index
+                                ),
                                 None,
                             )
                             if idx is not None:
@@ -249,9 +257,11 @@ def run(project_id: str) -> None:
 
                 # Process both variants
                 for variant_idx in [0, 1]:
-                    track_index = variant_0_track_index if variant_idx == 0 else variant_1_track_index
+                    track_index = (
+                        variant_0_track_index if variant_idx == 0 else variant_1_track_index
+                    )
                     variant_title = f"{prompt.title} {'I' if variant_idx == 0 else 'II'}"
-                    
+
                     # Check if this variant already exists
                     existing = existing_tracks_by_track_index.get(track_index)
                     if existing and existing.status == "ok" and existing.audio_path:
@@ -267,7 +277,7 @@ def run(project_id: str) -> None:
                     if variant_idx >= len(suno_data):
                         error_msg = f"Variant {variant_idx} not available in Suno response (only {len(suno_data)} variants)"
                         log.error(f"Track {track_index}: {error_msg}")
-                        
+
                         attempt_count = 0
                         if existing and existing.error:
                             attempt_count = existing.error.attempt_count + 1
@@ -293,7 +303,11 @@ def run(project_id: str) -> None:
 
                         if existing:
                             idx = next(
-                                (i for i, t in enumerate(project.tracks) if t.track_index == track_index),
+                                (
+                                    i
+                                    for i, t in enumerate(project.tracks)
+                                    if t.track_index == track_index
+                                ),
                                 None,
                             )
                             if idx is not None:
@@ -309,7 +323,7 @@ def run(project_id: str) -> None:
                     if not isinstance(variant_data, dict):
                         error_msg = f"Variant {variant_idx} data is not a dict"
                         log.error(f"Track {track_index}: {error_msg}")
-                        
+
                         attempt_count = 0
                         if existing and existing.error:
                             attempt_count = existing.error.attempt_count + 1
@@ -335,7 +349,11 @@ def run(project_id: str) -> None:
 
                         if existing:
                             idx = next(
-                                (i for i, t in enumerate(project.tracks) if t.track_index == track_index),
+                                (
+                                    i
+                                    for i, t in enumerate(project.tracks)
+                                    if t.track_index == track_index
+                                ),
                                 None,
                             )
                             if idx is not None:
@@ -355,7 +373,7 @@ def run(project_id: str) -> None:
                     if not audio_url:
                         error_msg = "No usable audio URL (audioUrl/streamAudioUrl) in variant data"
                         log.error(f"Track {track_index}: {error_msg}")
-                        
+
                         attempt_count = 0
                         if existing and existing.error:
                             attempt_count = existing.error.attempt_count + 1
@@ -381,7 +399,11 @@ def run(project_id: str) -> None:
 
                         if existing:
                             idx = next(
-                                (i for i, t in enumerate(project.tracks) if t.track_index == track_index),
+                                (
+                                    i
+                                    for i, t in enumerate(project.tracks)
+                                    if t.track_index == track_index
+                                ),
                                 None,
                             )
                             if idx is not None:
@@ -402,13 +424,15 @@ def run(project_id: str) -> None:
                     audio_path = tracks_dir / audio_filename
                     relative_audio_path = f"tracks/{audio_filename}"
 
-                    log.info(f"Downloading variant {variant_idx} (track {track_index}) to {relative_audio_path}")
+                    log.info(
+                        f"Downloading variant {variant_idx} (track {track_index}) to {relative_audio_path}"
+                    )
                     try:
                         provider.download_audio(str(audio_url), str(audio_path))
                     except Exception as e:
                         error_msg = f"Failed to download audio: {e}"
                         log.error(f"Track {track_index}: {error_msg}")
-                        
+
                         attempt_count = 0
                         if existing and existing.error:
                             attempt_count = existing.error.attempt_count + 1
@@ -434,7 +458,11 @@ def run(project_id: str) -> None:
 
                         if existing:
                             idx = next(
-                                (i for i, t in enumerate(project.tracks) if t.track_index == track_index),
+                                (
+                                    i
+                                    for i, t in enumerate(project.tracks)
+                                    if t.track_index == track_index
+                                ),
                                 None,
                             )
                             if idx is not None:
@@ -449,25 +477,31 @@ def run(project_id: str) -> None:
                     # Compute duration
                     log.info(f"Computing duration for track {track_index}")
                     duration = None
-                    
+
                     try:
                         duration = get_duration_seconds(audio_path)
                         log.info(f"Track {track_index} duration (ffprobe): {duration:.2f} seconds")
                     except Exception as e:
-                        log.warning(f"ffprobe failed for track {track_index}: {e}. Trying Suno duration as fallback.")
+                        log.warning(
+                            f"ffprobe failed for track {track_index}: {e}. Trying Suno duration as fallback."
+                        )
                         suno_duration = variant_data.get("duration")
                         if suno_duration:
                             try:
                                 duration = float(suno_duration)
-                                log.info(f"Track {track_index} duration (from Suno): {duration:.2f} seconds")
+                                log.info(
+                                    f"Track {track_index} duration (from Suno): {duration:.2f} seconds"
+                                )
                             except (ValueError, TypeError):
-                                log.error(f"Invalid duration from Suno for track {track_index}: {suno_duration}")
+                                log.error(
+                                    f"Invalid duration from Suno for track {track_index}: {suno_duration}"
+                                )
                                 duration = None
-                    
+
                     if duration is None or duration <= 0:
                         error_msg = "Could not determine duration (ffprobe failed and Suno duration unavailable)"
                         log.error(f"Track {track_index}: {error_msg}")
-                        
+
                         track = Track(
                             track_index=track_index,
                             title=variant_title,
@@ -487,7 +521,11 @@ def run(project_id: str) -> None:
 
                         if existing:
                             idx = next(
-                                (i for i, t in enumerate(project.tracks) if t.track_index == track_index),
+                                (
+                                    i
+                                    for i, t in enumerate(project.tracks)
+                                    if t.track_index == track_index
+                                ),
                                 None,
                             )
                             if idx is not None:
@@ -518,7 +556,11 @@ def run(project_id: str) -> None:
                     # Update or add to tracks list
                     if existing:
                         idx = next(
-                            (i for i, t in enumerate(project.tracks) if t.track_index == track_index),
+                            (
+                                i
+                                for i, t in enumerate(project.tracks)
+                                if t.track_index == track_index
+                            ),
                             None,
                         )
                         if idx is not None:
@@ -543,4 +585,3 @@ def run(project_id: str) -> None:
             save_project(project)
             log.error(f"Generate step failed: {e}")
             raise
-

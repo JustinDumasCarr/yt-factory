@@ -10,7 +10,6 @@ Checks:
 import os
 import subprocess
 import sys
-from pathlib import Path
 
 from ytf.project import PROJECTS_DIR
 
@@ -144,4 +143,3 @@ def check_all() -> int:
 
 if __name__ == "__main__":
     sys.exit(check_all())
-

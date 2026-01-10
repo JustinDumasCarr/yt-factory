@@ -7,12 +7,11 @@ Provides functions for detecting leading silence and other audio quality issues.
 import re
 import subprocess
 from pathlib import Path
-from typing import Optional, Union
 
 
 def detect_leading_silence(
-    audio_path: Union[str, Path], silence_threshold: float = -50.0, duration: float = 5.0
-) -> Optional[float]:
+    audio_path: str | Path, silence_threshold: float = -50.0, duration: float = 5.0
+) -> float | None:
     """
     Detect leading silence in an audio file using FFmpeg silencedetect.
 
@@ -38,10 +37,14 @@ def detect_leading_silence(
         result = subprocess.run(
             [
                 "ffmpeg",
-                "-i", str(audio_path),
-                "-af", f"silencedetect=noise={silence_threshold}dB:d=0.3",
-                "-t", str(duration),  # Analyze only first N seconds
-                "-f", "null",
+                "-i",
+                str(audio_path),
+                "-af",
+                f"silencedetect=noise={silence_threshold}dB:d=0.3",
+                "-t",
+                str(duration),  # Analyze only first N seconds
+                "-f",
+                "null",
                 "-",
             ],
             capture_output=True,
@@ -73,4 +76,3 @@ def detect_leading_silence(
         raise RuntimeError(f"FFmpeg timed out while detecting silence in {audio_path}") from None
     except Exception as e:
         raise RuntimeError(f"FFmpeg error detecting silence: {e}") from e
-

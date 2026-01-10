@@ -6,7 +6,6 @@ and thumbnail upload.
 """
 
 from datetime import datetime
-from pathlib import Path
 
 from ytf.logger import StepLogger
 from ytf.project import (
@@ -87,14 +86,12 @@ def run(project_id: str) -> None:
             # Validate prerequisites
             if not project.render or not project.render.output_mp4_path:
                 raise RuntimeError(
-                    "Render step must be completed before upload. "
-                    "No output video found."
+                    "Render step must be completed before upload. " "No output video found."
                 )
 
             if not project.plan or not project.plan.youtube_metadata:
                 raise RuntimeError(
-                    "Plan step must be completed before upload. "
-                    "No YouTube metadata found."
+                    "Plan step must be completed before upload. " "No YouTube metadata found."
                 )
 
             # Initialize YouTube provider
@@ -105,8 +102,7 @@ def run(project_id: str) -> None:
             video_path = project_dir / project.render.output_mp4_path
             if not video_path.exists():
                 raise FileNotFoundError(
-                    f"Video file not found: {video_path}. "
-                    "Please run render step first."
+                    f"Video file not found: {video_path}. " "Please run render step first."
                 )
 
             log.info(f"Video file: {video_path.resolve()}")
@@ -139,7 +135,7 @@ def run(project_id: str) -> None:
             made_for_kids = upload_config.made_for_kids if upload_config else False
             default_language = upload_config.default_language if upload_config else "en"
 
-            log.info(f"Upload settings:")
+            log.info("Upload settings:")
             log.info(f"  Title: {title}")
             log.info(f"  Privacy: {privacy}")
             log.info(f"  Category ID: {category_id}")
@@ -191,9 +187,11 @@ def run(project_id: str) -> None:
                 privacy=privacy,
                 title=title,
                 thumbnail_uploaded=False,
-                thumbnail_path=str(project.render.thumbnail_path)
-                if project.render and project.render.thumbnail_path
-                else None,
+                thumbnail_path=(
+                    str(project.render.thumbnail_path)
+                    if project.render and project.render.thumbnail_path
+                    else None
+                ),
             )
             save_project(project)
 
@@ -215,4 +213,3 @@ def run(project_id: str) -> None:
             save_project(project)
             log.error(f"Upload step failed: {e}")
             raise
-

@@ -7,10 +7,9 @@ Uses ffprobe to get duration and other metadata from media files.
 import json
 import subprocess
 from pathlib import Path
-from typing import Union
 
 
-def get_duration_seconds(file_path: Union[str, Path]) -> float:
+def get_duration_seconds(file_path: str | Path) -> float:
     """
     Get duration of audio/video file using ffprobe.
 
@@ -48,9 +47,7 @@ def get_duration_seconds(file_path: Union[str, Path]) -> float:
         )
 
         if result.returncode != 0:
-            raise RuntimeError(
-                f"ffprobe failed: {result.stderr or result.stdout}"
-            )
+            raise RuntimeError(f"ffprobe failed: {result.stderr or result.stdout}")
 
         data = json.loads(result.stdout)
         duration_str = data.get("format", {}).get("duration")
@@ -61,9 +58,7 @@ def get_duration_seconds(file_path: Union[str, Path]) -> float:
         duration = float(duration_str)
 
         if duration <= 0:
-            raise RuntimeError(
-                f"Invalid duration {duration} seconds for {file_path}"
-            )
+            raise RuntimeError(f"Invalid duration {duration} seconds for {file_path}")
 
         return duration
 
@@ -73,4 +68,3 @@ def get_duration_seconds(file_path: Union[str, Path]) -> float:
         raise RuntimeError(f"ffprobe timed out for {file_path}") from None
     except Exception as e:
         raise RuntimeError(f"ffprobe error: {e}") from e
-

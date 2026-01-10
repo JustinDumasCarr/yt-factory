@@ -7,11 +7,11 @@ Filters by commercial-use licenses (CC0, CC-BY) only.
 
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import httpx
-
 from dotenv import load_dotenv
+
 from ytf.utils.retry import retry_call
 
 # Load environment variables from .env file
@@ -66,7 +66,9 @@ class FreesoundProvider:
 
         params = {
             "query": query,
-            "page_size": min(limit * 2, 150) if filter_license else min(limit, 150),  # Fetch more if filtering
+            "page_size": (
+                min(limit * 2, 150) if filter_license else min(limit, 150)
+            ),  # Fetch more if filtering
             "fields": "id,name,license,url,previews,duration,username,tags,description",
         }
 
@@ -82,13 +84,13 @@ class FreesoundProvider:
             data = response.json()
 
             results = data.get("results", [])
-            
+
             # Normalize license values to our format and filter
             normalized_results = []
             for result in results:
                 if len(normalized_results) >= limit:
                     break
-                    
+
                 license_value = result.get("license", "")
                 # Map Freesound license values to our format
                 # Freesound uses: "Creative Commons 0" for CC0, "Attribution" for CC-BY
@@ -97,17 +99,19 @@ class FreesoundProvider:
                     license_type = "CC0"
                 elif license_value == "Attribution":
                     license_type = "CC-BY"
-                
+
                 # Filter by license if requested
                 if filter_license and not license_type:
                     continue  # Skip non-commercial licenses
-                
+
                 # Include result (with or without license based on filter_license)
                 normalized_result = {
                     "id": result.get("id"),
                     "name": result.get("name"),
                     "license": license_type,
-                    "license_url": f"https://freesound.org/help/licenses/" if license_type else None,
+                    "license_url": (
+                        "https://freesound.org/help/licenses/" if license_type else None
+                    ),
                     "url": result.get("url"),
                     "previews": result.get("previews", {}),
                     "duration": result.get("duration", 0),
@@ -148,20 +152,22 @@ class FreesoundProvider:
         # First get sound details to check license
         try:
             detail_response = retry_call(
-                lambda: self.client.get(f"/sounds/{sound_id}/", params={"fields": "id,name,license,url,previews"}),
+                lambda: self.client.get(
+                    f"/sounds/{sound_id}/", params={"fields": "id,name,license,url,previews"}
+                ),
                 max_retries=3,
                 initial_delay=1.0,
             )
             detail_response.raise_for_status()
             sound_data = detail_response.json()
-            
+
             license_value = sound_data.get("license", "")
             license_type = None
             if license_value == "Creative Commons 0":
                 license_type = "CC0"
             elif license_value == "Attribution":
                 license_type = "CC-BY"
-            
+
             if not license_type:
                 raise ValueError(
                     f"Sound {sound_id} does not have a commercial-use license. "
@@ -195,7 +201,7 @@ class FreesoundProvider:
                 "id": sound_data.get("id"),
                 "name": sound_data.get("name"),
                 "license": license_type,
-                "license_url": f"https://freesound.org/help/licenses/",
+                "license_url": "https://freesound.org/help/licenses/",
                 "url": sound_data.get("url"),
             }
 

@@ -7,11 +7,11 @@ All Pixabay audio is free for commercial use (Pixabay License).
 
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import httpx
-
 from dotenv import load_dotenv
+
 from ytf.utils.retry import retry_call
 
 # Load environment variables from .env file
@@ -78,7 +78,7 @@ class PixabayProvider:
 
             # Pixabay returns hits array
             hits = data.get("hits", [])
-            
+
             # Normalize results to our format
             normalized_results = []
             for hit in hits[:limit]:
@@ -92,9 +92,15 @@ class PixabayProvider:
                     "license": "Pixabay",  # All Pixabay content is free for commercial use
                     "license_url": "https://pixabay.com/service/license/",
                     "url": hit.get("pageURL", ""),  # Page URL
-                    "download_url": hit.get("url") or hit.get("audio_url") or hit.get("download"),  # Direct download URL (field name may vary)
+                    "download_url": hit.get("url")
+                    or hit.get("audio_url")
+                    or hit.get("download"),  # Direct download URL (field name may vary)
                     "duration": hit.get("duration", 0),  # Duration in seconds
-                    "tags": hit.get("tags", "").split(", ") if isinstance(hit.get("tags"), str) else (hit.get("tags", []) if isinstance(hit.get("tags"), list) else []),
+                    "tags": (
+                        hit.get("tags", "").split(", ")
+                        if isinstance(hit.get("tags"), str)
+                        else (hit.get("tags", []) if isinstance(hit.get("tags"), list) else [])
+                    ),
                     "user": hit.get("user", ""),
                 }
                 normalized_results.append(normalized_result)

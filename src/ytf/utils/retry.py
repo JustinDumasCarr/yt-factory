@@ -6,8 +6,9 @@ Provides both a function-based retry wrapper and a decorator for step-level retr
 
 import random
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, TypeVar, Union
+from typing import TypeVar
 
 T = TypeVar("T")
 
@@ -103,7 +104,7 @@ def retry_call(
                 raise
 
             # Calculate delay with exponential backoff
-            delay = initial_delay * (2 ** attempt)
+            delay = initial_delay * (2**attempt)
             delay = min(delay, max_delay)
 
             # Add jitter if enabled (up to 20% of delay)
@@ -170,7 +171,7 @@ def retry_step(
                         raise
 
                     # Calculate delay with exponential backoff
-                    delay = initial_delay * (2 ** attempt)
+                    delay = initial_delay * (2**attempt)
 
                     # Log retry attempt (using print since we don't have logger context here)
                     print(
@@ -188,4 +189,3 @@ def retry_step(
         return wrapper
 
     return decorator
-

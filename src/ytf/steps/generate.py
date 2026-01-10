@@ -7,9 +7,8 @@ Per-variant failures do not stop the step - it continues with remaining variants
 """
 
 import json
-import math
-from pathlib import Path
 
+from ytf import soundbank
 from ytf.channel import get_channel
 from ytf.logger import StepLogger
 from ytf.project import (
@@ -23,14 +22,13 @@ from ytf.project import (
     update_status,
 )
 from ytf.providers.suno import SunoProvider
-from ytf import soundbank
 from ytf.utils.ffprobe import get_duration_seconds
 
 
 def _generate_tinnitus_recipe(project, log) -> None:
     """
     Generate a tinnitus mix recipe from soundbank (no Suno calls).
-    
+
     Args:
         project: Project instance
         log: StepLogger instance
@@ -42,27 +40,27 @@ def _generate_tinnitus_recipe(project, log) -> None:
             channel = get_channel(project.channel_id)
         except Exception as e:
             log.warning(f"Failed to load channel profile: {e}")
-    
+
     # Get available sounds from soundbank
     available_sounds = soundbank.list_sounds()
     if not available_sounds:
         raise ValueError(
             "Soundbank is empty. Use 'ytf soundbank add' or 'ytf soundbank generate' to add sounds first."
         )
-    
+
     log.info(f"Found {len(available_sounds)} sounds in soundbank")
-    
+
     # Calculate target duration
     target_duration_seconds = project.target_minutes * 60.0
-    
+
     # Smart recipe selection: try to match theme keywords to sound names/descriptions
     # Extract keywords from theme (e.g., "Crickets and Ocean Waves" -> ["crickets", "ocean", "waves"])
     theme_lower = project.theme.lower()
     theme_keywords = theme_lower.replace(" and ", " ").replace(",", " ").split()
-    
+
     selected_sounds = []
     matched_sound_ids = set()
-    
+
     # First pass: try to match sounds by keywords in name/description
     for keyword in theme_keywords:
         for sound in available_sounds:
@@ -76,7 +74,7 @@ def _generate_tinnitus_recipe(project, log) -> None:
                     break
         if len(selected_sounds) >= 3:
             break
-    
+
     # If we didn't find enough matches, add remaining sounds
     if len(selected_sounds) < 2:
         for sound in available_sounds:
@@ -84,34 +82,34 @@ def _generate_tinnitus_recipe(project, log) -> None:
                 selected_sounds.append(sound)
                 if len(selected_sounds) >= 3:
                     break
-    
+
     # Ensure we have at least one sound
     if not selected_sounds:
         selected_sounds = available_sounds[:1]
-    
-    stems = [
-        SoundbankRef(sound_id=s.sound_id, volume=1.0) for s in selected_sounds
-    ]
-    
+
+    stems = [SoundbankRef(sound_id=s.sound_id, volume=1.0) for s in selected_sounds]
+
     mix_type = "layered" if len(stems) > 1 else "single"
-    
+
     # Validate all sound_ids exist and have files
     for stem in stems:
         sound_path = soundbank.get_sound_path(stem.sound_id)
         if not sound_path:
             raise ValueError(f"Soundbank sound not found or file missing: {stem.sound_id}")
-        log.info(f"  - {stem.sound_id}: {soundbank.get_sound(stem.sound_id).name} (volume={stem.volume})")
-    
+        log.info(
+            f"  - {stem.sound_id}: {soundbank.get_sound(stem.sound_id).name} (volume={stem.volume})"
+        )
+
     # Create recipe
     recipe = TinnitusMixRecipe(
         stems=stems,
         mix_type=mix_type,
         target_duration_seconds=target_duration_seconds,
     )
-    
+
     project.tinnitus_recipe = recipe
     save_project(project)
-    
+
     log.info(f"Created tinnitus recipe: {mix_type} mix with {len(stems)} stems")
     log.info(f"Target duration: {target_duration_seconds / 60:.1f} minutes")
 
@@ -119,16 +117,14 @@ def _generate_tinnitus_recipe(project, log) -> None:
 def _generate_suno_tracks(project, log) -> None:
     """
     Generate tracks via Suno API (standard channel behavior).
-    
+
     Args:
         project: Project instance
         log: StepLogger instance
     """
     # Validate plan exists
     if not project.plan or not project.plan.prompts:
-        raise ValueError(
-            "Project plan not found. Run 'ytf plan <id>' first."
-        )
+        raise ValueError("Project plan not found. Run 'ytf plan <id>' first.")
 
     prompts = project.plan.prompts
     log.info(f"Found {len(prompts)} job prompts to generate")
@@ -150,7 +146,7 @@ def _generate_suno_tracks(project, log) -> None:
     existing_tracks_by_track_index = {}  # track_index -> Track
     for t in project.tracks:
         existing_tracks_by_track_index[t.track_index] = t
-        if hasattr(t, 'job_index') and hasattr(t, 'variant_index'):
+        if hasattr(t, "job_index") and hasattr(t, "variant_index"):
             if t.job_index not in existing_tracks_by_job:
                 existing_tracks_by_job[t.job_index] = {}
             existing_tracks_by_job[t.job_index][t.variant_index] = t
@@ -165,7 +161,7 @@ def _generate_suno_tracks(project, log) -> None:
 
     for prompt in prompts:
         job_index = prompt.job_index
-        
+
         # Determine track indices for this job's variants
         variant_0_track_index = next_track_index
         variant_1_track_index = next_track_index + 1
@@ -174,29 +170,27 @@ def _generate_suno_tracks(project, log) -> None:
         # Check if both variants already exist
         existing_variants = existing_tracks_by_job.get(job_index, {})
         variant_0_exists = (
-            existing_variants.get(0) and 
-            existing_variants[0].status == "ok" and 
-            existing_variants[0].audio_path and
-            (project_dir / existing_variants[0].audio_path).exists()
+            existing_variants.get(0)
+            and existing_variants[0].status == "ok"
+            and existing_variants[0].audio_path
+            and (project_dir / existing_variants[0].audio_path).exists()
         )
         variant_1_exists = (
-            existing_variants.get(1) and 
-            existing_variants[1].status == "ok" and 
-            existing_variants[1].audio_path and
-            (project_dir / existing_variants[1].audio_path).exists()
+            existing_variants.get(1)
+            and existing_variants[1].status == "ok"
+            and existing_variants[1].audio_path
+            and (project_dir / existing_variants[1].audio_path).exists()
         )
 
         if variant_0_exists and variant_1_exists:
-            log.info(
-                f"Job {job_index} already complete (both variants exist), skipping"
-            )
+            log.info(f"Job {job_index} already complete (both variants exist), skipping")
             successful += 2
             continue
 
         # Get or submit job
         task_id = None
         job_tracks = existing_tracks_by_job.get(job_index, {})
-        
+
         # Check if we have a job_id from any existing variant
         for variant_track in job_tracks.values():
             if variant_track and variant_track.job_id:
@@ -239,7 +233,7 @@ def _generate_suno_tracks(project, log) -> None:
             for variant_idx in [0, 1]:
                 track_index = variant_0_track_index if variant_idx == 0 else variant_1_track_index
                 variant_title = f"{prompt.title} {'I' if variant_idx == 0 else 'II'}"
-                
+
                 existing = existing_tracks_by_track_index.get(track_index)
                 attempt_count = 0
                 if existing and existing.error:
@@ -289,7 +283,7 @@ def _generate_suno_tracks(project, log) -> None:
             for variant_idx in [0, 1]:
                 track_index = variant_0_track_index if variant_idx == 0 else variant_1_track_index
                 variant_title = f"{prompt.title} {'I' if variant_idx == 0 else 'II'}"
-                
+
                 existing = existing_tracks_by_track_index.get(track_index)
                 attempt_count = 0
                 if existing and existing.error:
@@ -332,7 +326,7 @@ def _generate_suno_tracks(project, log) -> None:
         for variant_idx in [0, 1]:
             track_index = variant_0_track_index if variant_idx == 0 else variant_1_track_index
             variant_title = f"{prompt.title} {'I' if variant_idx == 0 else 'II'}"
-            
+
             # Check if this variant already exists
             existing = existing_tracks_by_track_index.get(track_index)
             if existing and existing.status == "ok" and existing.audio_path:
@@ -348,7 +342,7 @@ def _generate_suno_tracks(project, log) -> None:
             if variant_idx >= len(suno_data):
                 error_msg = f"Variant {variant_idx} not available in Suno response (only {len(suno_data)} variants)"
                 log.error(f"Track {track_index}: {error_msg}")
-                
+
                 attempt_count = 0
                 if existing and existing.error:
                     attempt_count = existing.error.attempt_count + 1
@@ -390,7 +384,7 @@ def _generate_suno_tracks(project, log) -> None:
             if not isinstance(variant_data, dict):
                 error_msg = f"Variant {variant_idx} data is not a dict"
                 log.error(f"Track {track_index}: {error_msg}")
-                
+
                 attempt_count = 0
                 if existing and existing.error:
                     attempt_count = existing.error.attempt_count + 1
@@ -436,7 +430,7 @@ def _generate_suno_tracks(project, log) -> None:
             if not audio_url:
                 error_msg = "No usable audio URL (audioUrl/streamAudioUrl) in variant data"
                 log.error(f"Track {track_index}: {error_msg}")
-                
+
                 attempt_count = 0
                 if existing and existing.error:
                     attempt_count = existing.error.attempt_count + 1
@@ -483,13 +477,15 @@ def _generate_suno_tracks(project, log) -> None:
             audio_path = tracks_dir / audio_filename
             relative_audio_path = f"tracks/{audio_filename}"
 
-            log.info(f"Downloading variant {variant_idx} (track {track_index}) to {relative_audio_path}")
+            log.info(
+                f"Downloading variant {variant_idx} (track {track_index}) to {relative_audio_path}"
+            )
             try:
                 provider.download_audio(str(audio_url), str(audio_path))
             except Exception as e:
                 error_msg = f"Failed to download audio: {e}"
                 log.error(f"Track {track_index}: {error_msg}")
-                
+
                 attempt_count = 0
                 if existing and existing.error:
                     attempt_count = existing.error.attempt_count + 1
@@ -530,25 +526,33 @@ def _generate_suno_tracks(project, log) -> None:
             # Compute duration
             log.info(f"Computing duration for track {track_index}")
             duration = None
-            
+
             try:
                 duration = get_duration_seconds(audio_path)
                 log.info(f"Track {track_index} duration (ffprobe): {duration:.2f} seconds")
             except Exception as e:
-                log.warning(f"ffprobe failed for track {track_index}: {e}. Trying Suno duration as fallback.")
+                log.warning(
+                    f"ffprobe failed for track {track_index}: {e}. Trying Suno duration as fallback."
+                )
                 suno_duration = variant_data.get("duration")
                 if suno_duration:
                     try:
                         duration = float(suno_duration)
-                        log.info(f"Track {track_index} duration (from Suno): {duration:.2f} seconds")
+                        log.info(
+                            f"Track {track_index} duration (from Suno): {duration:.2f} seconds"
+                        )
                     except (ValueError, TypeError):
-                        log.error(f"Invalid duration from Suno for track {track_index}: {suno_duration}")
+                        log.error(
+                            f"Invalid duration from Suno for track {track_index}: {suno_duration}"
+                        )
                         duration = None
-            
+
             if duration is None or duration <= 0:
-                error_msg = "Could not determine duration (ffprobe failed and Suno duration unavailable)"
+                error_msg = (
+                    "Could not determine duration (ffprobe failed and Suno duration unavailable)"
+                )
                 log.error(f"Track {track_index}: {error_msg}")
-                
+
                 track = Track(
                     track_index=track_index,
                     title=variant_title,
@@ -623,22 +627,22 @@ def _generate_suno_tracks(project, log) -> None:
 def run(project_id: str) -> None:
     """
     Run the generate step for a project.
-    
+
     For tinnitus_relief channel: generates a recipe from soundbank (no Suno calls).
     For other channels: generates tracks via Suno API.
-    
+
     Args:
         project_id: Project ID
     """
     project = load_project(project_id)
-    
+
     with StepLogger(project_id, "generate") as log:
         try:
             update_status(project, "generate")
             save_project(project)
-            
+
             log.info("Starting generate step")
-            
+
             # Check if this is a tinnitus channel project
             if project.channel_id == "tinnitus_relief":
                 log.info("Tinnitus channel detected: generating recipe from soundbank...")
@@ -646,10 +650,9 @@ def run(project_id: str) -> None:
             else:
                 log.info("Standard channel: generating tracks via Suno...")
                 _generate_suno_tracks(project, log)
-                
+
         except Exception as e:
             log.error(f"Generate step failed: {e}", exc_info=True)
             update_status(project, "generate", error=str(e))
             save_project(project)
             raise
-

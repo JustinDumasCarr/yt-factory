@@ -6,20 +6,19 @@ initializes project.json with user inputs, and sets up required directories.
 """
 
 from datetime import datetime
-from typing import Optional
 
 from ytf.channel import get_channel
 from ytf.logger import StepLogger
 from ytf.project import (
-    Project,
-    VocalsConfig,
-    LyricsConfig,
-    VideoConfig,
-    UploadConfig,
     FunnelConfig,
+    LyricsConfig,
+    Project,
     ProjectStatus,
-    generate_project_id,
+    UploadConfig,
+    VideoConfig,
+    VocalsConfig,
     create_project_folder,
+    generate_project_id,
     save_project,
     update_status,
 )
@@ -28,8 +27,8 @@ from ytf.project import (
 def create_project(
     theme: str,
     channel_id: str,
-    minutes: Optional[int] = None,
-    tracks: Optional[int] = None,
+    minutes: int | None = None,
+    tracks: int | None = None,
     vocals: str = "off",
     lyrics: str = "off",
 ) -> str:
@@ -97,8 +96,12 @@ def create_project(
             log.info(f"Channel: {channel_id} ({channel.name})")
             log.info(f"Theme: {theme}")
             log.info(f"Intent: {channel.intent}")
-            log.info(f"Target minutes: {target_minutes} (channel default: {channel.duration_rules.target_minutes})")
-            log.info(f"Track count: {track_count} (channel default: {channel.duration_rules.track_count})")
+            log.info(
+                f"Target minutes: {target_minutes} (channel default: {channel.duration_rules.target_minutes})"
+            )
+            log.info(
+                f"Track count: {track_count} (channel default: {channel.duration_rules.track_count})"
+            )
             log.info(f"Vocals: {vocals_enabled}")
             log.info(f"Lyrics: {lyrics_enabled}")
 
@@ -115,4 +118,3 @@ def create_project(
             raise
 
     return project_id
-

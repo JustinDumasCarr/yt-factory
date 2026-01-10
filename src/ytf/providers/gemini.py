@@ -56,7 +56,9 @@ class GeminiProvider:
         Raises:
             Exception: If API call fails or response is invalid
         """
-        vocals_desc = "Include description of vocal style" if vocals_enabled else "Instrumental only"
+        vocals_desc = (
+            "Include description of vocal style" if vocals_enabled else "Instrumental only"
+        )
 
         prompt = f"""Generate {track_count} music tracks for a compilation with theme: "{theme}".
 
@@ -103,9 +105,7 @@ Make sure the JSON is valid and parseable."""
                 raise ValueError(f"Expected list, got {type(track_data)}")
 
             if len(track_data) != track_count:
-                raise ValueError(
-                    f"Expected {track_count} tracks, got {len(track_data)}"
-                )
+                raise ValueError(f"Expected {track_count} tracks, got {len(track_data)}")
 
             # Validate each track
             for i, track in enumerate(track_data):
@@ -120,13 +120,9 @@ Make sure the JSON is valid and parseable."""
                 prompt_text = str(track["prompt"]).strip()
 
                 if not style or len(style) > 1000:
-                    raise ValueError(
-                        f"Track {i} style invalid: length {len(style)}, max 1000"
-                    )
+                    raise ValueError(f"Track {i} style invalid: length {len(style)}, max 1000")
                 if not title or len(title) > 100:
-                    raise ValueError(
-                        f"Track {i} title invalid: length {len(title)}, max 100"
-                    )
+                    raise ValueError(f"Track {i} title invalid: length {len(title)}, max 100")
                 if not prompt_text or len(prompt_text) > 5000:
                     raise ValueError(
                         f"Track {i} prompt invalid: length {len(prompt_text)}, max 5000"
@@ -139,7 +135,9 @@ Make sure the JSON is valid and parseable."""
             return track_data
 
         except json.JSONDecodeError as e:
-            raise ValueError(f"Failed to parse JSON response: {e}\nResponse: {response_text}") from e
+            raise ValueError(
+                f"Failed to parse JSON response: {e}\nResponse: {response_text}"
+            ) from e
         except google_exceptions.GoogleAPIError as e:
             # Preserve raw error details
             raw_error = f"Google API error: {str(e)}"
@@ -339,6 +337,7 @@ Make sure the JSON is valid and parseable."""
             Exception: If API call fails or image cannot be saved
         """
         from pathlib import Path
+
         from google.genai import types
 
         # Create prompt for scenic background image
@@ -360,7 +359,7 @@ Make sure the JSON is valid and parseable."""
                         response_modalities=["IMAGE"],
                         image_config=types.ImageConfig(
                             aspect_ratio="16:9",
-                        )
+                        ),
                     ),
                 ),
                 max_retries=3,
@@ -394,10 +393,13 @@ Make sure the JSON is valid and parseable."""
             raw_error = f"Google API error: {str(e)}"
             if hasattr(e, "status_code"):
                 raw_error = f"HTTP {e.status_code}: {raw_error}"
-            raise RuntimeError(f"Gemini API error generating background image: {e} | Raw: {raw_error}") from e
+            raise RuntimeError(
+                f"Gemini API error generating background image: {e} | Raw: {raw_error}"
+            ) from e
         except Exception as e:
             raw_error = str(e)
             if hasattr(e, "response"):
                 raw_error = f"Response: {getattr(e.response, 'text', raw_error)}"
-            raise RuntimeError(f"Gemini API error generating background image: {e} | Raw: {raw_error}") from e
-
+            raise RuntimeError(
+                f"Gemini API error generating background image: {e} | Raw: {raw_error}"
+            ) from e

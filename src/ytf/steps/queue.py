@@ -9,11 +9,9 @@ import json
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseModel
 
-from ytf.project import PROJECTS_DIR, load_project
 from ytf.runner import run_project
 from ytf.steps import new
 from ytf.utils.log_summary import generate_summary
@@ -33,8 +31,8 @@ class QueueItem(BaseModel):
     channel_id: str
     theme: str
     mode: str  # full, render, generate, plan, review, upload
-    minutes: Optional[int] = None
-    tracks: Optional[int] = None
+    minutes: int | None = None
+    tracks: int | None = None
     vocals: str = "off"
     lyrics: str = "off"
     max_project_attempts: int = 3  # Max attempts per step for the project
@@ -55,8 +53,8 @@ def add_queue_item(
     theme: str,
     mode: str,
     count: int = 1,
-    minutes: Optional[int] = None,
-    tracks: Optional[int] = None,
+    minutes: int | None = None,
+    tracks: int | None = None,
     vocals: str = "off",
     lyrics: str = "off",
     max_project_attempts: int = 3,
@@ -129,7 +127,7 @@ def list_queue() -> dict:
     }
 
 
-def run_queue(limit: Optional[int] = None) -> dict:
+def run_queue(limit: int | None = None) -> dict:
     """
     Process queue items sequentially.
 
@@ -179,7 +177,7 @@ def run_queue(limit: Optional[int] = None) -> dict:
 
             try:
                 # Load queue item
-                with open(in_progress_path, "r", encoding="utf-8") as f:
+                with open(in_progress_path, encoding="utf-8") as f:
                     item_data = json.load(f)
                 item = QueueItem(**item_data)
 
@@ -244,9 +242,11 @@ def run_queue(limit: Optional[int] = None) -> dict:
                         "last_successful_step": project.status.last_successful_step,
                         "youtube_video_id": None,
                         "failed_step": project.status.current_step,
-                        "error_message": str(project.status.last_error.message)
-                        if project.status.last_error
-                        else str(e),
+                        "error_message": (
+                            str(project.status.last_error.message)
+                            if project.status.last_error
+                            else str(e)
+                        ),
                     }
 
                     failed += 1
@@ -290,23 +290,23 @@ def run_queue(limit: Optional[int] = None) -> dict:
     error_by_step = {}
     total_retries = 0
     project_summaries = []
-    
+
     for result in results:
         if result["status"] == "failed" and result["project_id"]:
             # Try to load log summaries for failed projects
             try:
                 project = load_project(result["project_id"])
                 failed_step = result.get("failed_step") or project.status.current_step
-                
+
                 # Aggregate errors from last_error if available
                 if project.status.last_error:
                     error_kind = project.status.last_error.kind or "unknown"
                     error_provider = project.status.last_error.provider or "unknown"
-                    
+
                     error_by_type[error_kind] = error_by_type.get(error_kind, 0) + 1
                     error_by_provider[error_provider] = error_by_provider.get(error_provider, 0) + 1
                     error_by_step[failed_step] = error_by_step.get(failed_step, 0) + 1
-                
+
                 # Try to load step summaries
                 step_summaries = {}
                 for step in ["plan", "generate", "review", "render", "upload"]:
@@ -319,16 +319,18 @@ def run_queue(limit: Optional[int] = None) -> dict:
                                 total_retries += step_summary["retries"].get("total", 0)
                     except Exception:
                         pass
-                
+
                 if step_summaries:
-                    project_summaries.append({
-                        "project_id": result["project_id"],
-                        "step_summaries": step_summaries,
-                    })
+                    project_summaries.append(
+                        {
+                            "project_id": result["project_id"],
+                            "step_summaries": step_summaries,
+                        }
+                    )
             except Exception:
                 # Skip if we can't load project
                 pass
-    
+
     # Write enhanced summary JSON
     summary = {
         "run_id": run_id,
@@ -367,4 +369,3 @@ def _mode_to_step(mode: str) -> str:
         "plan": "plan",
     }
     return mode_map.get(mode, "upload")
-

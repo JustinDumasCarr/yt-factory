@@ -23,9 +23,33 @@ dependencies = [
 [project.scripts]
 ytf = "ytf.cli:app"
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
 [tool.setuptools]
 packages = ["ytf"]
 
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4"]
+ignore = [
+    "E501",   # Line too long (handled by black)
+    "UP036",  # Version block for minimum Python (intentional)
+    "B904",   # Exception chaining (acceptable)
+    "B905",   # zip() without strict= (acceptable)
+    "F841",   # Unused variables (to be cleaned up separately)
+]
 

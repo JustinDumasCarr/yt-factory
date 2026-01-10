@@ -4,14 +4,12 @@ Render step: Render final video using FFmpeg.
 Concatenates all available tracks, normalizes audio, and creates MP4 with static background.
 """
 
-import subprocess
-from pathlib import Path
 
+from ytf import soundbank
 from ytf.channel import get_channel
 from ytf.logger import StepLogger
 from ytf.project import PROJECTS_DIR, RenderData, load_project, save_project, update_status
 from ytf.providers.gemini import GeminiProvider
-from ytf import soundbank
 from ytf.utils import ffmpeg
 
 
@@ -46,10 +44,11 @@ def clean_title(title: str) -> str:
         Cleaned title without track count
     """
     import re
+
     # Remove patterns like "(2 Tracks)", "(25 Tracks)", etc.
-    cleaned = re.sub(r'\s*\(\d+\s+[Tt]racks?\)\s*', '', title)
+    cleaned = re.sub(r"\s*\(\d+\s+[Tt]racks?\)\s*", "", title)
     # Clean up extra whitespace
-    cleaned = ' '.join(cleaned.split())
+    cleaned = " ".join(cleaned.split())
     return cleaned
 
 
@@ -68,9 +67,9 @@ def add_letter_spacing(text: str) -> str:
     words = text.split()
     spaced_words = []
     for word in words:
-        spaced_word = ' '.join(word)
+        spaced_word = " ".join(word)
         spaced_words.append(spaced_word)
-    return '   '.join(spaced_words)  # Triple space between words
+    return "   ".join(spaced_words)  # Triple space between words
 
 
 def get_channel_title() -> str:
@@ -81,7 +80,9 @@ def get_channel_title() -> str:
         Channel title string
     """
     import os
+
     from dotenv import load_dotenv
+
     load_dotenv()
     channel_title = os.getenv("YOUTUBE_CHANNEL_TITLE", "Music Channel")
     return channel_title
@@ -110,7 +111,9 @@ def run(project_id: str) -> None:
 
             # Validate FFmpeg is available
             if not ffmpeg.check_ffmpeg():
-                raise RuntimeError("FFmpeg is not available. Run 'ytf doctor' to check prerequisites.")
+                raise RuntimeError(
+                    "FFmpeg is not available. Run 'ytf doctor' to check prerequisites."
+                )
 
             # Load channel profile for target duration check
             channel = None
@@ -127,7 +130,7 @@ def run(project_id: str) -> None:
 
             if approved_path.exists():
                 log.info(f"Reading approved.txt: {approved_path}")
-                with open(approved_path, "r", encoding="utf-8") as f:
+                with open(approved_path, encoding="utf-8") as f:
                     for line in f:
                         line = line.strip()
                         if line and not line.startswith("#"):
@@ -160,8 +163,10 @@ def run(project_id: str) -> None:
                 ]
 
             # Check if this is a tinnitus channel project (skip tracks and duration checks)
-            is_tinnitus = project.channel_id == "tinnitus_relief" and project.tinnitus_recipe is not None
-            
+            is_tinnitus = (
+                project.channel_id == "tinnitus_relief" and project.tinnitus_recipe is not None
+            )
+
             if not is_tinnitus:
                 if not available_tracks:
                     error_msg = "No available tracks to render. All tracks are failed, missing audio files, or failed QC."
@@ -174,7 +179,9 @@ def run(project_id: str) -> None:
 
                 log.info(f"Found {len(available_tracks)} available tracks")
                 total_duration = sum(track.duration_seconds for track in available_tracks)
-                log.info(f"Total duration: {format_timestamp(total_duration)} ({total_duration:.2f} seconds)")
+                log.info(
+                    f"Total duration: {format_timestamp(total_duration)} ({total_duration:.2f} seconds)"
+                )
 
                 # Check if duration meets target/minimum (fail fast if underfilled)
                 # project.json is the source of truth; channel profile provides defaults.
@@ -203,16 +210,16 @@ def run(project_id: str) -> None:
                     min_seconds = (min_minutes or 0) * 60
 
                 if min_seconds is not None and total_duration < min_seconds:
-                        missing_seconds = min_seconds - total_duration
-                        missing_minutes = missing_seconds / 60
-                        error_msg = (
-                            f"Insufficient track duration: {total_duration:.2f}s ({total_duration/60:.1f} min) "
-                            f"is below minimum {min_seconds}s ({min_minutes} min). "
-                            f"Need {missing_seconds:.2f}s ({missing_minutes:.1f} min) more. "
-                            f"Channel: {project.channel_id}"
-                        )
-                        log.error(error_msg)
-                        raise RuntimeError(error_msg)
+                    missing_seconds = min_seconds - total_duration
+                    missing_minutes = missing_seconds / 60
+                    error_msg = (
+                        f"Insufficient track duration: {total_duration:.2f}s ({total_duration/60:.1f} min) "
+                        f"is below minimum {min_seconds}s ({min_minutes} min). "
+                        f"Need {missing_seconds:.2f}s ({missing_minutes:.1f} min) more. "
+                        f"Channel: {project.channel_id}"
+                    )
+                    log.error(error_msg)
+                    raise RuntimeError(error_msg)
 
                 if total_duration < target_seconds:
                     missing_seconds = target_seconds - total_duration
@@ -233,7 +240,7 @@ def run(project_id: str) -> None:
                 # Step 1: Build audio from soundbank recipe
                 log.info("Building audio from tinnitus recipe (soundbank stems)...")
                 recipe = project.tinnitus_recipe
-                
+
                 # Get sound paths
                 sound_paths = []
                 volumes = []
@@ -245,10 +252,12 @@ def run(project_id: str) -> None:
                     volumes.append(stem.volume)
                     sound_entry = soundbank.get_sound(stem.sound_id)
                     log.info(f"  - {stem.sound_id}: {sound_entry.name} (volume={stem.volume})")
-                
+
                 # Build mixed audio
                 concat_audio_path = output_dir / "concat_audio.mp3"
-                log.info(f"Mixing {len(sound_paths)} stems to {recipe.target_duration_seconds / 60:.1f} minutes...")
+                log.info(
+                    f"Mixing {len(sound_paths)} stems to {recipe.target_duration_seconds / 60:.1f} minutes..."
+                )
                 ffmpeg.mix_layered_audio(
                     input_paths=sound_paths,
                     volumes=volumes,
@@ -257,20 +266,17 @@ def run(project_id: str) -> None:
                     crossfade_seconds=2.0,
                 )
                 log.info(f"Mixed audio saved to {concat_audio_path}")
-                
+
                 # For tinnitus, we don't have track indices (no tracks)
                 selected_indices = []
             else:
                 # Step 1: Concatenate audio files (standard channel)
                 log.info("Concatenating audio tracks...")
                 concat_audio_path = output_dir / "concat_audio.mp3"
-                audio_file_paths = [
-                    project_dir / track.audio_path
-                    for track in available_tracks
-                ]
+                audio_file_paths = [project_dir / track.audio_path for track in available_tracks]
                 ffmpeg.concatenate_audio_files(audio_file_paths, concat_audio_path)
                 log.info(f"Concatenated audio saved to {concat_audio_path}")
-                
+
                 # Get track indices for persistence
                 selected_indices = [track.track_index for track in available_tracks]
 
@@ -314,12 +320,12 @@ def run(project_id: str) -> None:
             # Step 3.5: Create thumbnail with text overlay
             log.info("Creating thumbnail with text overlay...")
             thumbnail_path = assets_dir / "thumbnail.png"
-            
+
             # Get and process album title
             album_title = "Music Compilation"
             if project.plan and project.plan.youtube_metadata:
                 album_title = project.plan.youtube_metadata.title
-            
+
             # Check for safe words and sanitize if needed
             if channel and channel.thumbnail_style.safe_words:
                 original_title = album_title
@@ -330,18 +336,19 @@ def run(project_id: str) -> None:
                         )
                         # Remove safe word (case-insensitive)
                         import re
+
                         album_title = re.sub(
                             re.escape(safe_word), "", album_title, flags=re.IGNORECASE
                         )
                         album_title = " ".join(album_title.split())  # Clean up extra spaces
                         log.info(f"Sanitized title: {album_title}")
                         break
-            
+
             # Clean title (remove track count) and process
             cleaned_title = clean_title(album_title)
             title_uppercase = cleaned_title.upper()
             title_spaced = add_letter_spacing(title_uppercase)
-            
+
             # Get channel title and process
             # Subtitle source:
             # - Prefer `project.json.channel.title` when present (some project.json files may embed this).
@@ -353,7 +360,7 @@ def run(project_id: str) -> None:
                 import json
 
                 raw_project_path = project_dir / "project.json"
-                with open(raw_project_path, "r", encoding="utf-8") as f:
+                with open(raw_project_path, encoding="utf-8") as f:
                     raw_project = json.load(f)
                 raw_channel = raw_project.get("channel") or {}
                 if isinstance(raw_channel, dict):
@@ -366,12 +373,12 @@ def run(project_id: str) -> None:
 
             if subtitle_raw:
                 channel_spaced = add_letter_spacing(str(subtitle_raw).upper())
-            
+
             # Get thumbnail style from channel config
             thumbnail_style = None
             if channel:
                 thumbnail_style = channel.thumbnail_style
-            
+
             # Check for custom font in brand folder
             custom_font_path = None
             if project.channel_id:
@@ -383,7 +390,7 @@ def run(project_id: str) -> None:
                         custom_font_path = font_path
                         log.info(f"Using custom font from brand folder: {font_path}")
                         break
-            
+
             ffmpeg.overlay_text_on_image(
                 image_path=background_path,
                 output_path=thumbnail_path,
@@ -423,7 +430,7 @@ def run(project_id: str) -> None:
                 timestamp = format_timestamp(cumulative_time)
                 # Use Track.title if available (includes variant suffix like "Title I" or "Title II"),
                 # otherwise fallback to track index
-                if hasattr(track, 'title') and track.title:
+                if hasattr(track, "title") and track.title:
                     title = track.title
                 else:
                     # Fallback for backwards compatibility
@@ -467,7 +474,7 @@ def run(project_id: str) -> None:
                     landing_url = project.funnel.landing_url or "{landing_url}"
                     utm_source = project.funnel.utm_source or "{utm_source}"
                     utm_campaign = project.funnel.utm_campaign or "{utm_campaign}"
-                    
+
                     cta_long = cta_variant.long_text.format(
                         landing_url=landing_url,
                         utm_source=utm_source,
@@ -475,7 +482,9 @@ def run(project_id: str) -> None:
                     )
                     cta_text = cta_long
                 else:
-                    log.warning(f"CTA variant {project.funnel.cta_variant_id} not found in channel profile")
+                    log.warning(
+                        f"CTA variant {project.funnel.cta_variant_id} not found in channel profile"
+                    )
             elif channel and channel.description_template.cta_block:
                 # Fallback to channel default CTA block
                 landing_url = project.funnel.landing_url or "{landing_url}"
@@ -533,7 +542,7 @@ def run(project_id: str) -> None:
                     landing_url = project.funnel.landing_url or "{landing_url}"
                     utm_source = project.funnel.utm_source or "{utm_source}"
                     utm_campaign = project.funnel.utm_campaign or "{utm_campaign}"
-                    
+
                     # Format both variants
                     cta_short = cta_variant.short_text.format(
                         landing_url=landing_url,
@@ -545,14 +554,16 @@ def run(project_id: str) -> None:
                         utm_source=utm_source,
                         utm_campaign=utm_campaign,
                     )
-                    
+
                     pinned_comment_lines.append("=== SHORT VARIANT ===")
                     pinned_comment_lines.append(cta_short)
                     pinned_comment_lines.append("")
                     pinned_comment_lines.append("=== LONG VARIANT ===")
                     pinned_comment_lines.append(cta_long)
                 else:
-                    log.warning(f"CTA variant {project.funnel.cta_variant_id} not found for pinned comment")
+                    log.warning(
+                        f"CTA variant {project.funnel.cta_variant_id} not found for pinned comment"
+                    )
                     pinned_comment_lines.append("(No CTA variant configured)")
 
             if not pinned_comment_lines:
@@ -571,14 +582,14 @@ def run(project_id: str) -> None:
             # Get theme and channel name for template
             theme = project.theme
             channel_name = channel.name if channel else "Music Compilation"
-            
+
             # Simple 5-line template
             shorts_script_lines = [
                 f"Shorts Script: {theme}",
                 f"Channel: {channel_name}",
-                f"",
+                "",
                 f"Use clips from this {channel_name.lower()} compilation to create engaging Shorts.",
-                f"Focus on the best moments and include a CTA to the full video."
+                "Focus on the best moments and include a CTA to the full video.",
             ]
 
             with open(shorts_script_path, "w", encoding="utf-8") as f:
@@ -591,7 +602,7 @@ def run(project_id: str) -> None:
             thumbnail_path_str = None
             if thumbnail_created and thumbnail_path.exists():
                 thumbnail_path_str = str(thumbnail_path.relative_to(project_dir))
-            
+
             project.render = RenderData(
                 background_path=str(background_path.relative_to(project_dir)),
                 thumbnail_path=thumbnail_path_str,
@@ -613,7 +624,7 @@ def run(project_id: str) -> None:
             save_project(project)
 
             log.info("Render step completed successfully")
-            log.info(f"Output files:")
+            log.info("Output files:")
             log.info(f"  - Video: {final_video_path}")
             log.info(f"  - Chapters: {chapters_path}")
             log.info(f"  - Description: {description_path}")

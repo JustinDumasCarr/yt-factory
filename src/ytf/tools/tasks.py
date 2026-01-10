@@ -17,10 +17,9 @@ import argparse
 import re
 import subprocess
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
-
 
 TASK_HEADER_RE = re.compile(r"^- \[(?P<mark>[ xX~!])\] (?P<task_id>T\d{3})\b(?P<title>.*)$")
 VERIFY_LINE_RE = re.compile(r"^\s+- Verify:\s*(?P<cmd>.+?)\s*$")
@@ -99,7 +98,10 @@ def cmd_verify(tasks_file: Path, task_id: str) -> int:
 
     block = tasks[task_id]
     if not block.verify_commands:
-        print(f"No Verify commands found for {task_id}. Add lines like: '  - Verify: <command>'", file=sys.stderr)
+        print(
+            f"No Verify commands found for {task_id}. Add lines like: '  - Verify: <command>'",
+            file=sys.stderr,
+        )
         return 2
 
     for cmd in block.verify_commands:
@@ -182,7 +184,9 @@ def main(argv: list[str] | None = None) -> int:
 
     p_done = sub.add_parser("done", help="Mark a task as done (requires --force by default)")
     p_done.add_argument("task_id", help="Task id like T001")
-    p_done.add_argument("--force", action="store_true", help="Allow editing TASKS.md to mark task done")
+    p_done.add_argument(
+        "--force", action="store_true", help="Allow editing TASKS.md to mark task done"
+    )
 
     args = parser.parse_args(cleaned)
     tasks_file = Path(tasks_file_arg)
@@ -200,5 +204,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-
